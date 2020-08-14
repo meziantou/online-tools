@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30404.54
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnlineTools", "OnlineTools\OnlineTools.csproj", "{408A0F7D-B6A4-495C-ABA2-7AD3A0E9779C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CD3DF2FC-AA3C-4C04-95D0-1FA9343AE0AA}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{408A0F7D-B6A4-495C-ABA2-7AD3A0E9779C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{408A0F7D-B6A4-495C-ABA2-7AD3A0E9779C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{408A0F7D-B6A4-495C-ABA2-7AD3A0E9779C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{408A0F7D-B6A4-495C-ABA2-7AD3A0E9779C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7439C625-6C1D-494B-A55B-BA48A0E6B001}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,34 @@
+name: 'Publish application'
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: true
+
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '5.0.100-preview.7.20366.6'
+      
+      - name: Test
+        run: dotnet test
+      
+      - name: Publish
+        run: dotnet publish OnlineTools/OnlineTools.csproj --configuration Release
+      
+      - name: GitHub Pages action
+        if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+        uses: peaceiris/actions-gh-pages@v3.6.1
+        with:
+          github_token: ${{ secrets.PUBLISH_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: OnlineTools/bin/Release/net5.0/browser-wasm/publish/wwwroot
+          allow_empty_commit: false
+          keep_files: false
+          force_orphan: true
+          cname: tools.meziantou.net
