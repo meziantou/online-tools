@@ -1,0 +1,31 @@
+﻿@page "/url-encode"
+
+<h1>URL Encode / Decode</h1>
+<p>Use <code>Uri.EscapeDataString</code> / <code>Uri.UnescapeDataString</code></p>
+
+<textarea class="form-control" @bind="text"></textarea>
+
+<div>
+    <button class="btn btn-secondary" @onclick="Encode">Encode</button>
+    <button class="btn btn-secondary" @onclick="Decode">Decode</button>
+</div>
+
+@if (result != null)
+{
+<pre class="result">@result</pre>
+}
+
+@code {
+    string text;
+    string result;
+
+    void Encode()
+    {
+        result = Uri.EscapeDataString(text ?? "");
+    }
+
+    void Decode()
+    {
+        result = Uri.UnescapeDataString(text ?? "");
+    }
+}

@@ -1,0 +1,36 @@
+﻿@page "/crontab"
+
+<h1>Crontab</h1>
+<p><a href="https://github.com/atifaziz/NCrontab/wiki/Crontab-Expression">Crontab documentation</a></p>
+
+<input class="form-control" list="expressions" @bind="text" />
+<datalist id="expressions">
+    <option value="* * * * *" />
+</datalist>
+
+<div>
+    <button class="btn btn-secondary" @onclick="Compute">Get occurences</button>
+</div>
+
+@if (result != null)
+{
+<pre class="result">@result</pre>
+}
+
+@code {
+    string text = "* * * * *";
+    string result;
+
+    void Compute()
+    {
+        try
+        {
+            var schedule = NCrontab.CrontabSchedule.Parse(text);
+            result = string.Join("\n", schedule.GetNextOccurrences(DateTime.Now, DateTime.MaxValue).Take(50));
+        }
+        catch (Exception ex)
+        {
+            result = ex.Message;
+        }
+    }
+}
