@@ -1,0 +1,74 @@
+﻿@page "/string-info"
+
+<h1>String Info</h1>
+
+<textarea class="form-control" @oninput="OnChange">@text</textarea>
+
+<div>
+    <button class="btn btn-secondary" @onclick="Compute">Compute</button>
+</div>
+
+@if (result != null)
+{
+    <pre class="result">@result</pre>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Character</th>
+                <th>Unicode scalar</th>
+                <th>UTF-16</th>
+                <th>UTF-8</th>
+            </tr>
+        </thead>
+        @foreach (var rune in text.EnumerateRunes())
+        {
+            <tr>
+                <td><code>@rune</code></td>
+                <td><a href="https://www.compart.com/en/unicode/U+@rune.Value.ToString("X4")">U+@rune.Value.ToString("X4")</a></td>
+                <td>@GetUtf16(rune)</td>
+                <td>@GetUtf8(rune)</td>
+            </tr>
+        }
+    </table>
+}
+
+@code {
+    string text;
+    string result;
+
+    void OnChange(ChangeEventArgs e)
+    {
+        text = e.Value as string;
+        Compute();
+    }
+
+    void Compute()
+    {
+        text ??= "";
+        var info = new System.Globalization.StringInfo(text);
+
+        var sb = new System.Text.StringBuilder();
+
+        sb.AppendLine("Length:   " + text.Length);
+        sb.AppendLine("Runes:    " + text.EnumerateRunes().Count());
+        sb.AppendLine("Graphems: " + info.LengthInTextElements);
+
+        result = sb.ToString();
+    }
+
+    string GetUtf16(System.Text.Rune rune)
+    {
+        var bytes = new char[rune.Utf16SequenceLength];
+        rune.EncodeToUtf16(bytes);
+
+        return string.Join(' ', bytes.Select(c => "0x" + ((int)c).ToString("X")));
+    }
+
+    string GetUtf8(System.Text.Rune rune)
+    {
+        var bytes = new byte[rune.Utf8SequenceLength];
+        rune.EncodeToUtf8(bytes);
+
+        return string.Join(' ', bytes.Select(c => "0x" + ((int)c).ToString("X")));
+    }
+}
