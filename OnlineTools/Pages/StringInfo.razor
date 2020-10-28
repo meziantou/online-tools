@@ -10,26 +10,26 @@
 
 @if (result != null)
 {
-    <pre class="result">@result</pre>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Character</th>
-                <th>Unicode scalar</th>
-                <th>UTF-16</th>
-                <th>UTF-8</th>
-            </tr>
-        </thead>
-        @foreach (var rune in text.EnumerateRunes())
+<pre class="result">@result</pre>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Character</th>
+            <th>Unicode scalar</th>
+            <th>UTF-16</th>
+            <th>UTF-8</th>
+        </tr>
+    </thead>
+    @foreach (var rune in text.EnumerateRunes())
         {
-            <tr>
-                <td><code>@rune</code></td>
-                <td><a href="https://www.compart.com/en/unicode/U+@rune.Value.ToString("X4")">U+@rune.Value.ToString("X4")</a></td>
-                <td>@GetUtf16(rune)</td>
-                <td>@GetUtf8(rune)</td>
-            </tr>
-        }
-    </table>
+    <tr>
+        <td><code>@rune</code></td>
+        <td><a href="https://www.compart.com/en/unicode/U+@rune.Value.ToString("X4")">U+@rune.Value.ToString("X4")</a></td>
+        <td>@GetUtf16(rune)</td>
+        <td>@GetUtf8(rune)</td>
+    </tr>
+    }
+</table>
 }
 
 @code {
@@ -58,10 +58,10 @@
 
     string GetUtf16(System.Text.Rune rune)
     {
-        var bytes = new char[rune.Utf16SequenceLength];
-        rune.EncodeToUtf16(bytes);
+        var chars = new char[rune.Utf16SequenceLength];
+        rune.EncodeToUtf16(chars);
 
-        return string.Join(' ', bytes.Select(c => "0x" + ((int)c).ToString("X")));
+        return string.Join(' ', chars.Select(c => "0x" + ((int)c).ToString("X4")));
     }
 
     string GetUtf8(System.Text.Rune rune)
