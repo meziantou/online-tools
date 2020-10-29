@@ -1,0 +1,32 @@
+﻿@page "/yaml-string-encoder"
+
+<h1>Yaml String Encoder</h1>
+
+<textarea class="form-control" @bind="text"></textarea>
+
+<div>
+    <button class="btn btn-secondary" @onclick="Encode">Encode to YAML string</button>
+</div>
+
+@if (result != null)
+{
+<pre class="result">@result</pre>
+}
+
+@code {
+    string text = "";
+    string result;
+
+    void Encode()
+    {
+        try
+        {
+            var serializer = new YamlDotNet.Serialization.Serializer();
+            result = serializer.Serialize(text);
+        }
+        catch (Exception ex)
+        {
+            result = ex.Message;
+        }
+    }
+}

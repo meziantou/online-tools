@@ -1,6 +1,4 @@
-@inject Microsoft.AspNetCore.Components.WebAssembly.Services.LazyAssemblyLoader AssemblyLoader
-
-<Router AppAssembly="@typeof(Program).Assembly" OnNavigateAsync="OnNavigateAsync">
+<Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
     </Found>
@@ -9,17 +7,4 @@
             <p>Sorry, there's nothing at this address.</p>
         </LayoutView>
     </NotFound>
-    <Navigating>
-        <p>Loading the page...</p>
-    </Navigating>
 </Router>
-
-@code{
-    private async Task OnNavigateAsync(NavigationContext context)
-    {
-        if (context.Path == "yaml-to-json")
-        {
-            var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "YamlDotNet.dll" });
-        }
-    }
-}
