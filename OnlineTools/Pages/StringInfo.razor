@@ -1,11 +1,13 @@
 ﻿@page "/string-info"
+@using System.Text
 
 <h1>String Info</h1>
 
 <textarea class="form-control" @oninput="OnChange">@text</textarea>
 
 <div>
-    <button class="btn btn-secondary" @onclick="Compute">Compute</button>
+    <button class="btn btn-secondary" @onclick="NormalizeC">Normalize Form C</button>
+    <button class="btn btn-secondary" @onclick="NormalizeD">Normalize Form D</button>
 </div>
 
 @if (result != null)
@@ -70,5 +72,15 @@
         rune.EncodeToUtf8(bytes);
 
         return string.Join(' ', bytes.Select(c => "0x" + ((int)c).ToString("X")));
+    }
+
+    void NormalizeC()
+    {
+        text = text.Normalize(NormalizationForm.FormC);
+    }
+
+    void NormalizeD()
+    {
+        text = text.Normalize(NormalizationForm.FormD);
     }
 }
