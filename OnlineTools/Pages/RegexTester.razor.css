@@ -1,0 +1,46 @@
+﻿::deep .match-0 {
+    background: rgb(198, 227, 255);
+}
+
+::deep .match-1 {
+    background: rgb(116, 196, 255);
+}
+
+.regex-options label {
+    margin-right: 5px;
+}
+
+.match {
+    margin-bottom: 20px;
+}
+
+.match-header {
+    font-weight: bold;
+}
+
+.match-name {
+    font-weight: bold;
+    vertical-align: top;
+    padding: 6px 10px;
+}
+
+.match-index {
+    color: #8e8e8e;
+    vertical-align: top;
+    padding: 6px 10px;
+}
+
+.match-value {
+    vertical-align: top;
+    background: rgba(0,0,0,.03);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-all;
+    overflow-wrap: break-word;
+    padding: 6px 10px;
+}
+
+.match-highlighted {
+    margin-top: 1rem;
+    display: block;
+}

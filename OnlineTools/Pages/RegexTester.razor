@@ -1,0 +1,186 @@
+﻿@page "/regex-tester"
+@using System.Text.Encodings.Web
+@using System.Text.RegularExpressions
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<h1>.NET Regex Tester</h1>
+
+<label>Pattern</label>
+<textarea class="form-control" @bind="pattern" @bind:event="oninput" spellcheck="false"></textarea>
+
+<div class="regex-options">
+    @foreach (RegexOptions value in Enum.GetValues(typeof(RegexOptions)))
+    {
+        if (value != RegexOptions.None)
+        {
+            <label>
+                <input type="checkbox" checked="@HasValue(value)" @onchange="(e)=>SetValue(value, (bool)e.Value)" /> @value
+            </label>
+        }
+    }
+</div>
+
+<label>Input</label>
+<textarea class="form-control" @bind="text" @bind:event="oninput" spellcheck="false"></textarea>
+
+<div>
+    <button class="btn btn-secondary" @onclick="ExecuteRegex" title="Evaluate with options @options">Evaluate</button>
+</div>
+
+@if (error != null)
+{
+    <pre>@error</pre>
+}
+else if (matches != null)
+{
+    <p class="match-highlighted match-value">@highlightedText</p>
+
+    @foreach (var (index, match) in EnumerateWithIndex<Match>(matches))
+    {
+        <div class="match">
+            <h3>Match @(index + 1)</h3>
+            <table class="match-details">
+                <tbody>
+                    <tr>
+                        <td class="match-name">Full match</td>
+                        <td class="match-index">@match.Index-@(match.Index + match.Length)</td>
+                        <td class="match-value">@match.Value</td>
+                    </tr>
+
+                    @foreach (Group group in match.Groups)
+                    {
+                        foreach (Capture capture in group.Captures)
+                        {
+                            <tr>
+                                <td class="match-name">Group @group.Name</td>
+                                <td class="match-index">@capture.Index-@(capture.Index + capture.Length)</td>
+                                <td class="match-value">@capture.Value</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    string pattern;
+    string text;
+    string error;
+    MatchCollection matches;
+    MarkupString highlightedText;
+    RegexOptions options = RegexOptions.CultureInvariant;
+    System.Threading.Timer timer;
+
+    RegexContext evaluatedRegex;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        var savedData = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "regextester");
+        if (!string.IsNullOrEmpty(savedData))
+        {
+            try
+            {
+                var context = System.Text.Json.JsonSerializer.Deserialize<RegexContext>(savedData);
+                if (context != null)
+                {
+                    pattern = context.Pattern;
+                    options = context.Options;
+                    text = context.Input;
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        timer = new System.Threading.Timer(o =>
+        {
+            _ = ExecuteRegex();
+        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+    }
+
+    async Task ExecuteRegex()
+    {
+        var currentContext = new RegexContext(pattern ?? "", options, text ?? "");
+        if (currentContext == evaluatedRegex)
+            return;
+
+        evaluatedRegex = currentContext;
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "regextester", System.Text.Json.JsonSerializer.Serialize(evaluatedRegex));
+
+        error = null;
+        matches = null;
+        highlightedText = default;
+
+        try
+        {
+            matches = Regex.Matches(currentContext.Input, currentContext.Pattern, currentContext.Options, TimeSpan.FromSeconds(5));
+
+            // Highlight result
+            var sb = new System.Text.StringBuilder();
+
+            var previousIndex = 0;
+            var matchIndex = 0;
+            foreach (Match match in matches)
+            {
+                sb.Append(HtmlEncoder.Default.Encode(currentContext.Input[previousIndex..match.Index]));
+                sb.Append($"<span class='match-{matchIndex % 2}'>");
+                sb.Append(HtmlEncoder.Default.Encode(currentContext.Input.Substring(match.Index, match.Length)));
+                sb.Append("</span>");
+
+                previousIndex = match.Index + match.Length;
+                matchIndex++;
+            }
+
+            sb.Append(HtmlEncoder.Default.Encode(currentContext.Input[previousIndex..]));
+
+            highlightedText = new MarkupString(sb.ToString());
+        }
+        catch (RegexParseException ex)
+        {
+            error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            error = ex.ToString();
+        }
+
+        // Can be called from the timer
+        StateHasChanged();
+    }
+
+    static IEnumerable<(int, T)> EnumerateWithIndex<T>(IEnumerable<T> enumerable)
+    {
+        var i = 0;
+        foreach (var item in enumerable)
+        {
+            yield return (i, item);
+            i++;
+        }
+    }
+
+    bool HasValue(RegexOptions flag) => options.HasFlag(flag);
+
+    void SetValue(RegexOptions flag, bool enable)
+    {
+        if (enable)
+        {
+            options |= flag;
+        }
+        else
+        {
+            options &= ~flag;
+        }
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+
+    record RegexContext(string Pattern, RegexOptions Options, string Input);
+}
