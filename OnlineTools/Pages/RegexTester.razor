@@ -2,12 +2,14 @@
 @using System.Text.Encodings.Web
 @using System.Text.RegularExpressions
 @inject IJSRuntime JSRuntime
+@inject QueryStringService QueryStringService
 @implements IDisposable
 
 <h1>.NET Regex Tester</h1>
+<p><a href="https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference">Regular Expression Language - Quick Reference</a></p>
 
 <label>Pattern</label>
-<textarea class="form-control" @bind="pattern" @bind:event="oninput" spellcheck="false"></textarea>
+<textarea class="form-control" @bind="Pattern" @bind:event="oninput" spellcheck="false"></textarea>
 
 <div class="regex-options">
     @foreach (RegexOptions value in Enum.GetValues(typeof(RegexOptions)))
@@ -22,10 +24,10 @@
 </div>
 
 <label>Input</label>
-<textarea class="form-control" @bind="text" @bind:event="oninput" spellcheck="false"></textarea>
+<textarea class="form-control" @bind="Text" @bind:event="oninput" spellcheck="false"></textarea>
 
 <div>
-    <button class="btn btn-secondary" @onclick="ExecuteRegex" title="Evaluate with options @options">Evaluate</button>
+    <button class="btn btn-secondary" @onclick="ExecuteRegex" title="Evaluate with options @Options">Evaluate</button>
 </div>
 
 @if (error != null)
@@ -66,19 +68,22 @@ else if (matches != null)
 }
 
 @code {
-    string pattern;
-    string text;
-    string error;
-    MatchCollection matches;
-    MarkupString highlightedText;
-    RegexOptions options = RegexOptions.CultureInvariant;
-    System.Threading.Timer timer;
+    [QueryStringParameter]
+    public string Pattern { get; set; }
+    [QueryStringParameter]
+    public string Text { get; set; }
+    [QueryStringParameter]
+    public RegexOptions Options { get; set; }
+
+    private string error;
+    private MatchCollection matches;
+    private MarkupString highlightedText;
+    private System.Threading.Timer timer;
 
     RegexContext evaluatedRegex;
 
     protected override async Task OnInitializedAsync()
     {
-
         var savedData = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "regextester");
         if (!string.IsNullOrEmpty(savedData))
         {
@@ -87,9 +92,9 @@ else if (matches != null)
                 var context = System.Text.Json.JsonSerializer.Deserialize<RegexContext>(savedData);
                 if (context != null)
                 {
-                    pattern = context.Pattern;
-                    options = context.Options;
-                    text = context.Input;
+                    Pattern = context.Pattern;
+                    Options = context.Options;
+                    Text = context.Input;
                 }
             }
             catch
@@ -100,17 +105,24 @@ else if (matches != null)
         timer = new System.Threading.Timer(o =>
         {
             _ = ExecuteRegex();
-        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
+    }
+
+    protected override void OnParametersSet()
+    {
+        QueryStringService.SetParametersFromQueryString(this);
+        base.OnParametersSet();
     }
 
     async Task ExecuteRegex()
     {
-        var currentContext = new RegexContext(pattern ?? "", options, text ?? "");
+        var currentContext = new RegexContext(Pattern ?? "", Options, Text ?? "");
         if (currentContext == evaluatedRegex)
             return;
 
         evaluatedRegex = currentContext;
         await JSRuntime.InvokeVoidAsync("localStorage.setItem", "regextester", System.Text.Json.JsonSerializer.Serialize(evaluatedRegex));
+        await QueryStringService.UpdateQueryString(this, reloadPage: false);
 
         error = null;
         matches = null;
@@ -127,7 +139,10 @@ else if (matches != null)
             var matchIndex = 0;
             foreach (Match match in matches)
             {
-                sb.Append(HtmlEncoder.Default.Encode(currentContext.Input[previousIndex..match.Index]));
+                if (match.Length == 0)
+                    continue;
+
+                sb.Append(HtmlEncoder.Default.Encode(currentContext.Input.Substring(previousIndex, match.Index - previousIndex)));
                 sb.Append($"<span class='match-{matchIndex % 2}'>");
                 sb.Append(HtmlEncoder.Default.Encode(currentContext.Input.Substring(match.Index, match.Length)));
                 sb.Append("</span>");
@@ -163,17 +178,17 @@ else if (matches != null)
         }
     }
 
-    bool HasValue(RegexOptions flag) => options.HasFlag(flag);
+    bool HasValue(RegexOptions flag) => Options.HasFlag(flag);
 
     void SetValue(RegexOptions flag, bool enable)
     {
         if (enable)
         {
-            options |= flag;
+            Options |= flag;
         }
         else
         {
-            options &= ~flag;
+            Options &= ~flag;
         }
     }
 

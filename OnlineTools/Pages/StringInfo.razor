@@ -1,9 +1,10 @@
 ﻿@page "/string-info"
+@inject QueryStringService QueryStringService
 @using System.Text
 
 <h1>String Info</h1>
 
-<textarea class="form-control" @oninput="OnChange">@text</textarea>
+<textarea class="form-control" @oninput="OnChange">@Text</textarea>
 
 <div>
     <button class="btn btn-secondary" @onclick="NormalizeC">Normalize Form C</button>
@@ -13,46 +14,58 @@
 @if (result != null)
 {
 <pre class="result">@result</pre>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Character</th>
-            <th>Unicode scalar</th>
-            <th>UTF-16</th>
-            <th>UTF-8</th>
-        </tr>
-    </thead>
-    @foreach (var rune in text.EnumerateRunes())
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Character</th>
+                <th>Unicode scalar</th>
+                <th>UTF-16</th>
+                <th>UTF-8</th>
+            </tr>
+        </thead>
+        @foreach (var rune in Text.EnumerateRunes())
         {
-    <tr>
-        <td><code>@rune</code></td>
-        <td><a href="https://www.compart.com/en/unicode/U+@rune.Value.ToString("X4")">U+@rune.Value.ToString("X4")</a></td>
-        <td>@GetUtf16(rune)</td>
-        <td>@GetUtf8(rune)</td>
-    </tr>
-    }
-</table>
+            <tr>
+                <td><code>@rune</code></td>
+                <td><a href="https://www.compart.com/en/unicode/U+@rune.Value.ToString("X4")">U+@rune.Value.ToString("X4")</a></td>
+                <td>@GetUtf16(rune)</td>
+                <td>@GetUtf8(rune)</td>
+            </tr>
+        }
+    </table>
 }
 
 @code {
-    string text;
+    [QueryStringParameter]
+    public string Text { get; set; }
+
     string result;
 
-    void OnChange(ChangeEventArgs e)
+    public override async Task SetParametersAsync(ParameterView parameters)
     {
-        text = e.Value as string;
-        Compute();
+        QueryStringService.SetParametersFromQueryString(this);
+        await base.SetParametersAsync(parameters);
+
+        await Compute();
     }
 
-    void Compute()
+    Task OnChange(ChangeEventArgs e)
     {
-        text ??= "";
-        var info = new System.Globalization.StringInfo(text);
+        Text = e.Value as string;
+        return Compute();
+    }
+
+    async Task Compute()
+    {
+        Text ??= "";
+        await QueryStringService.UpdateQueryString(this, reloadPage: false);
+
+        var info = new System.Globalization.StringInfo(Text);
 
         var sb = new System.Text.StringBuilder();
 
-        sb.AppendLine("Length:   " + text.Length);
-        sb.AppendLine("Runes:    " + text.EnumerateRunes().Count());
+        sb.AppendLine("Length:   " + Text.Length);
+        sb.AppendLine("Runes:    " + Text.EnumerateRunes().Count());
         sb.AppendLine("Graphems: " + info.LengthInTextElements);
 
         result = sb.ToString();
@@ -76,11 +89,11 @@
 
     void NormalizeC()
     {
-        text = text.Normalize(NormalizationForm.FormC);
+        Text = Text.Normalize(NormalizationForm.FormC);
     }
 
     void NormalizeD()
     {
-        text = text.Normalize(NormalizationForm.FormD);
+        Text = Text.Normalize(NormalizationForm.FormD);
     }
 }
