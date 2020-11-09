@@ -2,6 +2,7 @@
 @using System.Text.Encodings.Web
 @using System.Text.RegularExpressions
 @inject IJSRuntime JSRuntime
+@inject ClipboardService ClipboardService
 @inject QueryStringService QueryStringService
 @implements IDisposable
 
@@ -27,7 +28,8 @@
 <textarea class="form-control" @bind="Text" @bind:event="oninput" spellcheck="false"></textarea>
 
 <div>
-    <button class="btn btn-secondary" @onclick="ExecuteRegex" title="Evaluate with options @Options">Evaluate</button>
+    <button class="btn btn-primary" @onclick="ExecuteRegex" title="Evaluate with options @Options">Evaluate</button>
+    <button class="btn btn-secondary" @onclick="CopyAsCsharp">Copy Regex as C# code</button>
 </div>
 
 @if (error != null)
@@ -114,6 +116,19 @@ else if (matches != null)
         base.OnParametersSet();
     }
 
+    async Task CopyAsCsharp()
+    {
+        var text = $"new Regex({WriteStringLiteral(Pattern)}, {WriteRegexOptions(Options)}, TimeSpan.FromSeconds(1))";
+        try
+        {
+            await ClipboardService.WriteTextAsync(text);
+        }
+        catch
+        {
+            Console.WriteLine("Cannot write text to clipboard");
+        }
+    }
+
     async Task ExecuteRegex()
     {
         var currentContext = new RegexContext(Pattern ?? "", Options, Text ?? "");
@@ -195,6 +210,83 @@ else if (matches != null)
     public void Dispose()
     {
         timer?.Dispose();
+    }
+
+    private string WriteRegexOptions(RegexOptions options)
+    {
+        if (options == RegexOptions.None)
+            return "RegexOptions.None";
+
+        var values = new List<RegexOptions>();
+        foreach (var value in Enum.GetValues<RegexOptions>())
+        {
+            if (value == RegexOptions.None)
+                continue;
+
+            if (options.HasFlag(value))
+            {
+                values.Add(value);
+            }
+        }
+
+        return string.Join(" | ", values.Select(v => "RegexOptions." + Enum.GetName(v)));
+    }
+
+    private string WriteStringLiteral(string value)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("\"");
+        foreach (var c in value)
+        {
+            switch (c)
+            {
+                case '"':
+                    sb.Append("\\\"");
+                    break;
+
+                case '\t':
+                    sb.Append(@"\t");
+                    break;
+
+                case '\r':
+                    sb.Append(@"\r");
+                    break;
+
+                case '\n':
+                    sb.Append(@"\n");
+                    break;
+
+                case '\a':
+                    sb.Append(@"\a");
+                    break;
+
+                case '\b':
+                    sb.Append(@"\b");
+                    break;
+
+                case '\f':
+                    sb.Append(@"\f");
+                    break;
+
+                case '\v':
+                    sb.Append(@"\v");
+                    break;
+
+                case '\0':
+                    sb.Append(@"\0");
+                    break;
+
+                case '\\':
+                    sb.Append(@"\\");
+                    break;
+
+                default:
+                    sb.Append(c);
+                    break;
+            }
+        }
+        sb.Append("\"");
+        return sb.ToString();
     }
 
     record RegexContext(string Pattern, RegexOptions Options, string Input);
