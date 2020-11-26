@@ -63,7 +63,7 @@ namespace OnlineTools.Utils
                     continue;
 
                 var value = property.GetValue(component);
-                if (value is null)
+                if (value is null || (value.GetType() == typeof(string) && string.IsNullOrWhiteSpace(value.ToString())))
                 {
                     parameters.Remove(parameterName);
                 }
