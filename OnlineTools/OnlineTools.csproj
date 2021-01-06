@@ -9,6 +9,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="5.0.1" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
     <PackageReference Include="System.Net.Http.Json" Version="5.0.0" />
+    <PackageReference Include="LoremNET" Version="2.0.0" />
     <PackageReference Include="Meziantou.Framework.ByteSize" Version="1.3.0" />
     <PackageReference Include="Meziantou.Framework.Scheduling" Version="2.0.0" />
     <PackageReference Include="ncrontab" Version="3.3.1" />
