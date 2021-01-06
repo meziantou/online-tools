@@ -1,0 +1,93 @@
+﻿@page "/hash-data"
+@using System.Text
+@using System.IO
+@using System.Security.Cryptography
+
+<h1>Compute hash</h1>
+
+<select @bind="algorithm">
+    <option value="sha1">SHA1</option>
+    <option value="sha256">SHA256</option>
+    <option value="sha512">SHA512</option>
+</select>
+
+<textarea class="form-control" @bind="text"></textarea>
+
+<select @bind="encoding">
+    <option value="utf-8">UTF-8</option>
+    <option value="utf-16">UTF-16</option>
+    <option value="utf-32">UTF-32</option>
+    <option value="ascii">ASCII</option>
+</select>
+
+<div>
+    <label>Or upload a file</label>
+    <InputFile OnChange="@OnInputFileChange" />
+</div>
+
+<div>
+    <button class="btn btn-secondary" @onclick="Hash">Hash</button>
+</div>
+
+@if (resultBase64 != null)
+{
+    <pre class="result">@resultBase64</pre>
+}
+
+@if (resultHexa != null)
+{
+    <pre class="result">@resultHexa</pre>
+}
+
+@code {
+    string text;
+    string encoding;
+    string algorithm;
+    string resultBase64;
+    string resultHexa;
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        using var stream = e.File.OpenReadStream();
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        Hash(ms.ToArray());
+    }
+
+    void Hash()
+    {
+        Hash(GetEncoding().GetBytes(text ?? ""));
+    }
+
+    void Hash(byte[] data)
+    {
+        try
+        {
+            var hash = algorithm switch
+            {
+                "sha256" => SHA256.HashData(data),
+                "sha512" => SHA512.HashData(data),
+                _ => SHA1.HashData(data),
+            };
+
+            resultBase64 = Convert.ToBase64String(hash);
+            resultHexa = Convert.ToHexString(hash);
+        }
+        catch (Exception ex)
+        {
+            resultBase64 = ex.Message;
+        }
+    }
+
+    Encoding GetEncoding()
+    {
+        return encoding switch
+        {
+            "ascii" => Encoding.ASCII,
+            "utf-16" => Encoding.Unicode,
+            "utf-32" => Encoding.UTF32,
+            _ => Encoding.UTF8,
+        };
+    }
+}

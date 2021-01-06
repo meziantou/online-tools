@@ -6,6 +6,7 @@
 
 <div>
     <button class="btn btn-secondary" @onclick="Encode">Encode to YAML string</button>
+    <button class="btn btn-secondary" @onclick="Decode">Decode YAML string</button>
 </div>
 
 @if (result != null)
@@ -23,6 +24,19 @@
         {
             var serializer = new YamlDotNet.Serialization.Serializer();
             result = serializer.Serialize(text);
+        }
+        catch (Exception ex)
+        {
+            result = ex.Message;
+        }
+    }
+
+    void Decode()
+    {
+        try
+        {
+            var serializer = new YamlDotNet.Serialization.Deserializer();
+            result = serializer.Deserialize<object>(text)?.ToString();
         }
         catch (Exception ex)
         {
