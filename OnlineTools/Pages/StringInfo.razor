@@ -21,6 +21,7 @@
                 <th>Unicode scalar</th>
                 <th>UTF-16</th>
                 <th>UTF-8</th>
+                <th>Category</th>
             </tr>
         </thead>
         @foreach (var rune in Text.EnumerateRunes())
@@ -30,6 +31,7 @@
                 <td><a href="https://www.compart.com/en/unicode/U+@rune.Value.ToString("X4")">U+@rune.Value.ToString("X4")</a></td>
                 <td>@GetUtf16(rune)</td>
                 <td>@GetUtf8(rune)</td>
+                <td>@Rune.GetUnicodeCategory(rune)</td>
             </tr>
         }
     </table>
