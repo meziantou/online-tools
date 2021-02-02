@@ -10,7 +10,7 @@
 <p><a href="https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference">Regular Expression Language - Quick Reference</a></p>
 
 <label>Pattern</label>
-<textarea class="form-control" @bind="Pattern" @bind:event="oninput" spellcheck="false"></textarea>
+<textarea class="form-control code" @bind="Pattern" @bind:event="oninput" spellcheck="false"></textarea>
 
 <div class="regex-options">
     @foreach (RegexOptions value in Enum.GetValues(typeof(RegexOptions)))
@@ -25,7 +25,7 @@
 </div>
 
 <label>Input</label>
-<textarea class="form-control" @bind="Text" @bind:event="oninput" spellcheck="false"></textarea>
+<textarea class="form-control code" @bind="Text" @bind:event="oninput" spellcheck="false"></textarea>
 
 <div>
     <button class="btn btn-primary" @onclick="ExecuteRegex" title="Evaluate with options @Options">Evaluate</button>
