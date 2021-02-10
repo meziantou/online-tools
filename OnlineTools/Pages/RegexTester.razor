@@ -27,6 +27,12 @@
 <label>Input</label>
 <textarea class="form-control code" @bind="Text" @bind:event="oninput" spellcheck="false"></textarea>
 
+<label><input type="checkbox" @bind="Replace" /> Replace</label>
+@if (Replace)
+{
+    <textarea class="form-control code" @bind="Replacement" @bind:event="oninput" spellcheck="false"></textarea>
+}
+
 <div>
     <button class="btn btn-primary" @onclick="ExecuteRegex" title="Evaluate with options @Options">Evaluate</button>
     <button class="btn btn-secondary" @onclick="CopyAsCsharp">Copy Regex as C# code</button>
@@ -38,7 +44,13 @@
 }
 else if (matches != null)
 {
-    <p class="match-highlighted match-value">@highlightedText</p>
+    <p class="match-highlighted match-value" style="white-space: pre-wrap; font-family: monospace">@highlightedText</p>
+
+    @if(replacedText != null)
+    {
+        <h4>Replacement <small><a href="/string-info?Text=@replacedText">string info</a></small></h4>
+        <p class="result" style="white-space: pre-wrap; font-family: monospace">@replacedText</p>
+    }
 
     @foreach (var (index, match) in EnumerateWithIndex<Match>(matches))
     {
@@ -50,6 +62,7 @@ else if (matches != null)
                         <td class="match-name">Full match</td>
                         <td class="match-index">@match.Index-@(match.Index + match.Length)</td>
                         <td class="match-value">@match.Value</td>
+                        <td><a href="/string-info?Text=@match.Value">string info</a></td>
                     </tr>
 
                     @foreach (Group group in match.Groups)
@@ -60,6 +73,7 @@ else if (matches != null)
                                 <td class="match-name">Group @group.Name</td>
                                 <td class="match-index">@capture.Index-@(capture.Index + capture.Length)</td>
                                 <td class="match-value">@capture.Value</td>
+                                <td><a href="/string-info?Text=@capture.Value">string info</a></td>
                             </tr>
                         }
                     }
@@ -72,14 +86,23 @@ else if (matches != null)
 @code {
     [QueryStringParameter]
     public string Pattern { get; set; }
+    
+    [QueryStringParameter]
+    public bool Replace { get; set; }
+
+    [QueryStringParameter]
+    public string Replacement { get; set; }
+
     [QueryStringParameter]
     public string Text { get; set; }
+
     [QueryStringParameter]
     public RegexOptions Options { get; set; }
 
     private string error;
     private MatchCollection matches;
     private MarkupString highlightedText;
+    private string replacedText;
     private System.Threading.Timer timer;
 
     RegexContext evaluatedRegex;
@@ -97,6 +120,8 @@ else if (matches != null)
                     Pattern = context.Pattern;
                     Options = context.Options;
                     Text = context.Input;
+                    Replacement = context.Replacement;
+                    Replace = Replacement != null;
                 }
             }
             catch
@@ -131,7 +156,7 @@ else if (matches != null)
 
     async Task ExecuteRegex()
     {
-        var currentContext = new RegexContext(Pattern ?? "", Options, Text ?? "");
+        var currentContext = new RegexContext(Pattern ?? "", Options, Text ?? "", Replace ? Replacement : null);
         if (currentContext == evaluatedRegex)
             return;
 
@@ -142,6 +167,7 @@ else if (matches != null)
         error = null;
         matches = null;
         highlightedText = default;
+        replacedText = null;
 
         try
         {
@@ -169,6 +195,11 @@ else if (matches != null)
             sb.Append(HtmlEncoder.Default.Encode(currentContext.Input[previousIndex..]));
 
             highlightedText = new MarkupString(sb.ToString());
+
+            if (currentContext.Replacement != null)
+            {
+                replacedText = Regex.Replace(currentContext.Input, currentContext.Pattern, currentContext.Replacement, currentContext.Options, TimeSpan.FromSeconds(5));
+            }
         }
         catch (RegexParseException ex)
         {
@@ -289,5 +320,5 @@ else if (matches != null)
         return sb.ToString();
     }
 
-    record RegexContext(string Pattern, RegexOptions Options, string Input);
+    record RegexContext(string Pattern, RegexOptions Options, string Input, string Replacement);
 }

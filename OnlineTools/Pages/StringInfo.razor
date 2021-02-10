@@ -42,13 +42,20 @@
     public string Text { get; set; }
 
     string result;
-
-    public override async Task SetParametersAsync(ParameterView parameters)
+        
+    protected override void OnParametersSet()
     {
         QueryStringService.SetParametersFromQueryString(this);
-        await base.SetParametersAsync(parameters);
-
-        await Compute();
+        base.OnParametersSet();
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {            
+            await Compute();
+            StateHasChanged();
+        }
     }
 
     Task OnChange(ChangeEventArgs e)

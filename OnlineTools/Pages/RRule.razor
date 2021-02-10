@@ -34,6 +34,15 @@
         await Compute();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {            
+            await Compute();
+            StateHasChanged();
+        }
+    }
+
     async Task Compute()
     {
         try
