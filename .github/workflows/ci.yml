@@ -23,7 +23,7 @@ jobs:
       
       - name: Cache buster
         run: |
-          dotnet tool install --global meziantou.html
+          dotnet tool install --global Meziantou.Framework.Html.Tool
           meziantou.html append-version --file-pattern "OnlineTools/bin/Release/net5.0/publish/wwwroot/**/*.html"
       
       - name: GitHub Pages action
