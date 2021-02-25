@@ -184,7 +184,7 @@ else if (matches != null)
                     continue;
 
                 sb.Append(HtmlEncoder.Default.Encode(currentContext.Input.Substring(previousIndex, match.Index - previousIndex)));
-                sb.Append($"<span class='match-{matchIndex % 2}'>");
+                sb.Append($"<span b-regex class='match-{matchIndex % 2}'>");
                 sb.Append(HtmlEncoder.Default.Encode(currentContext.Input.Substring(match.Index, match.Length)));
                 sb.Append("</span>");
 

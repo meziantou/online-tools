@@ -17,6 +17,10 @@
     <PackageReference Include="YamlDotNet" Version="9.1.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Pages/RegexTester.razor.css" CssScope="b-regex" />
+  </ItemGroup>
+
   <Target Name="CopyFiles" BeforeTargets="BeforeBuild">
     <Copy SourceFiles="wwwroot/index.html" DestinationFiles="wwwroot/404.html" />
   </Target>

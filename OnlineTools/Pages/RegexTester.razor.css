@@ -1,8 +1,8 @@
-﻿::deep .match-0 {
+﻿.match-0 {
     background: rgb(198, 227, 255);
 }
 
-::deep .match-1 {
+.match-1 {
     background: rgb(116, 196, 255);
 }
 
