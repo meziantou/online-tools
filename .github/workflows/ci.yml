@@ -35,15 +35,3 @@ jobs:
           keep_files: false
           force_orphan: true
           cname: tools.meziantou.net
-
-      - name: GitHub Pages action (Review)
-        if: ${{ github.ref != 'refs/heads/master' }} # Publish only when the push is on master
-        uses: peaceiris/actions-gh-pages@v3.7.3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages-review
-          publish_dir: OnlineTools/bin/Release/net5.0/publish/wwwroot
-          allow_empty_commit: false
-          keep_files: false
-          force_orphan: true
-          cname: tools.meziantou.net
