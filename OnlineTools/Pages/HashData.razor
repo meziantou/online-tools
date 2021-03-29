@@ -2,6 +2,7 @@
 @using System.Text
 @using System.IO
 @using System.Security.Cryptography
+@using System.Diagnostics.CodeAnalysis
 
 <h1>Compute hash</h1>
 
@@ -60,6 +61,7 @@
         Hash(GetEncoding().GetBytes(text ?? ""));
     }
 
+    [SuppressMessage("Security", "CA5350: Hash uses a weak cryptographic algorithm SHA1")]
     void Hash(byte[] data)
     {
         try
