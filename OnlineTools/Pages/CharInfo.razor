@@ -1,0 +1,76 @@
+﻿@page "/char-info"
+@inject QueryStringService QueryStringService
+@using System.Text
+
+<h1>Character Info</h1>
+
+<p class="text-description">Enter a codepoint </p>
+<input class="form-control code" @oninput="OnChange" value="@Text" />
+
+@if (result != null)
+{
+	<div style="display:flex; flex-wrap:wrap">
+		@foreach (var item in result)
+		{
+		 <div class="card">
+		  <div class="card-body">
+		   <h3 class="card-title">@item.DisplayValue</h3>
+		   <p style="margin-bottom: 0">@item.Name</p>
+		   <table>
+			<tr>
+			 <td class="column-info">Code point:</td>
+			 <td>@item.CharInfo.CodePoint (@item.DisplayCodePoint)</td>
+			</tr>
+			<tr>
+			 <td class="column-info">Category:</td>
+			 <td>@item.CharInfo.Category</td>
+			</tr>
+			<tr>
+			 <td class="column-info">Block:</td>
+			 <td>@item.Block</td>
+			</tr>
+			<tr>
+			 <td class="column-info">Escape:</td>
+			 <td>@item.Escape</td>
+			</tr>
+		   </table>
+		  </div>
+		 </div>
+		}
+	</div>
+}
+
+@code {
+	[QueryStringParameter]
+	public string Text { get; set; }
+
+	ICollection<CharInfoWrapper> result;
+
+	protected override void OnParametersSet()
+	{
+		QueryStringService.SetParametersFromQueryString(this);
+		base.OnParametersSet();
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await Compute();
+			StateHasChanged();
+		}
+	}
+
+	Task OnChange(ChangeEventArgs e)
+	{
+		Text = e.Value as string;
+		return Compute();
+	}
+
+	async Task Compute()
+	{
+		Text ??= "";
+		await QueryStringService.UpdateQueryString(this, reloadPage: false);
+		result = UnicodeData.GetData(Text);
+	}
+}

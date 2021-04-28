@@ -22,7 +22,7 @@ jobs:
       - name: Cache buster
         run: |
           dotnet tool install --global Meziantou.Framework.Html.Tool
-          meziantou.html append-version --file-pattern "OnlineTools/bin/Release/net5.0/publish/wwwroot/**/*.html"
+          meziantou.html append-version --file-pattern "OnlineTools/bin/Release/net6.0/publish/wwwroot/**/*.html"
       
       - name: GitHub Pages action
         if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
@@ -30,7 +30,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: OnlineTools/bin/Release/net5.0/publish/wwwroot
+          publish_dir: OnlineTools/bin/Release/net6.0/publish/wwwroot
           allow_empty_commit: false
           keep_files: false
           force_orphan: true
