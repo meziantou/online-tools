@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Unicode;
@@ -39,11 +40,14 @@ namespace OnlineTools.Utils
             }
 
             var result = new List<CharInfoWrapper>();
+            search = search.ToUpperInvariant();
             foreach (var entry in s_index)
             {
-                if (entry.Text.Contains(search, StringComparison.OrdinalIgnoreCase))
+                if (entry.Text.Contains(search, StringComparison.Ordinal))
                 {
                     result.Add(new CharInfoWrapper(entry.CharInfo));
+                    if (result.Count > 100)
+                        break;
                 }
             }
 
@@ -53,6 +57,7 @@ namespace OnlineTools.Utils
 
         private static List<IndexEntry> BuildUnicodeIndex()
         {
+            var sw = Stopwatch.StartNew();
             var result = new List<IndexEntry>();
             var blocks = UnicodeInfo.GetBlocks();
 
@@ -69,15 +74,16 @@ namespace OnlineTools.Utils
                     var displayText = charInfo.Name;
                     if (displayText != null)
                     {
-                        result.Add(new(charInfo, displayText));
+                        result.Add(new(charInfo, displayText, displayText.ToUpperInvariant()));
                     }
                 }
             }
 
+            Console.WriteLine("Index built in " + sw.Elapsed);
             return result;
         }
 
-        private record IndexEntry(UnicodeCharInfo CharInfo, string Text);
+        private record IndexEntry(UnicodeCharInfo CharInfo, string Text, string SearchText);
     }
 
     public record CharInfoWrapper(UnicodeCharInfo CharInfo)
@@ -88,7 +94,6 @@ namespace OnlineTools.Utils
         public string Block => CharInfo.Block;
         public string Name => CharInfo.Name;
         public string Escape => GetEscapeString(CharInfo.CodePoint);
-
 
         private static string GetEscapeString(int value)
         {

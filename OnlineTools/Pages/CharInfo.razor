@@ -5,7 +5,7 @@
 <h1>Character Info</h1>
 
 <p class="text-description">Enter a codepoint </p>
-<input class="form-control code" @oninput="OnChange" value="@Text" />
+<input class="form-control code" @oninput="onInputEvent" value="@Text" />
 
 @if (result != null)
 {
@@ -44,7 +44,14 @@
 	[QueryStringParameter]
 	public string Text { get; set; }
 
+	Action<ChangeEventArgs> onInputEvent;
 	ICollection<CharInfoWrapper> result;
+
+	protected override void OnInitialized()
+	{
+		onInputEvent = DebounceEvent<ChangeEventArgs>(e => OnChange(e), TimeSpan.FromMilliseconds(1000));
+		base.OnInitialized();
+	}
 
 	protected override void OnParametersSet()
 	{
@@ -71,6 +78,38 @@
 	{
 		Text ??= "";
 		await QueryStringService.UpdateQueryString(this, reloadPage: false);
+
+		Console.WriteLine("Searching: " + Text);
 		result = UnicodeData.GetData(Text);
+	}
+
+	Action<T> DebounceEvent<T>(Func<T, Task> action, TimeSpan interval)
+	{
+		return Debounce<T>(arg =>
+		{
+			InvokeAsync(async () =>
+			{
+				await action(arg);
+				StateHasChanged();
+			});
+		}, interval);
+	}
+
+	Action<T> Debounce<T>(Action<T> action, TimeSpan interval)
+	{
+		if (action == null) throw new ArgumentNullException(nameof(action));
+
+		var last = 0;
+		return arg =>
+		{
+			var current = System.Threading.Interlocked.Increment(ref last);
+			Task.Delay(interval).ContinueWith(task =>
+			{
+				if (current == last)
+				{
+					action(arg);
+				}
+			});
+		};
 	}
 }
