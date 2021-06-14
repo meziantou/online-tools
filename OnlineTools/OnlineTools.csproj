@@ -15,7 +15,7 @@
     <PackageReference Include="Meziantou.Framework.Scheduling" Version="2.0.1" />
     <PackageReference Include="ncrontab" Version="3.3.1" />
     <PackageReference Include="UnicodeInformation" Version="2.5.0" />
-    <PackageReference Include="YamlDotNet" Version="11.1.1" />
+    <PackageReference Include="YamlDotNet" Version="11.2.0" />
   </ItemGroup>
 
   <ItemGroup>
