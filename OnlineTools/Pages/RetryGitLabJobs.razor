@@ -38,10 +38,20 @@
 
 @if (jobs.Count > 0)
 {
-    <div>Total jobs: @jobs.Count</div>
+    <div>Total jobs: @jobs.Count<br />Failed jobs: @jobs.Where(job => job.Status == JobStatus.Failed).Count()</div>
 
     <ul>
-        @foreach (var job in jobs.OrderBy(job => IsCompleted(job)).ThenBy(job => job.CreatedAt))
+        @foreach (var job in jobs.Where(job => job.Status is JobStatus.Created or JobStatus.Pending or JobStatus.Running).OrderByDescending(job => job.CreatedAt))
+        {
+            <li>@RenderJob(job)</li>
+        }
+
+        @foreach (var job in jobs.Where(job => job.Status is JobStatus.Failed).OrderByDescending(job => job.CreatedAt))
+        {
+            <li>@RenderJob(job)</li>
+        }
+
+        @foreach (var job in jobs.Where(job => job.Status is not JobStatus.Created and not JobStatus.Pending and not JobStatus.Running and not JobStatus.Failed).OrderByDescending(job => job.CreatedAt))
         {
             <li>@RenderJob(job)</li>
         }
