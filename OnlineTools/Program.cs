@@ -16,7 +16,6 @@ namespace OnlineTools
 
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
             builder.Services.AddScoped<ClipboardService>();
-            builder.Services.AddTransient<QueryStringService>();
 
 
             await builder.Build().RunAsync();

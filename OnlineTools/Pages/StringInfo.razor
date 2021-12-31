@@ -1,5 +1,5 @@
 ﻿@page "/string-info"
-@inject QueryStringService QueryStringService
+@inject NavigationManager NavigationManager
 @using System.Text
 
 <h1>String Info</h1>
@@ -13,7 +13,7 @@
 
 @if (result != null)
 {
-<pre class="result">@result</pre>
+    <pre class="result">@result</pre>
     <table class="table">
         <thead>
             <tr>
@@ -38,36 +38,26 @@
 }
 
 @code {
-    [QueryStringParameter]
+    [Parameter, SupplyParameterFromQuery]
     public string Text { get; set; }
 
     string result;
-        
+
     protected override void OnParametersSet()
     {
-        QueryStringService.SetParametersFromQueryString(this);
-        base.OnParametersSet();
-    }
-    
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {            
-            await Compute();
-            StateHasChanged();
-        }
+        Compute();
     }
 
-    Task OnChange(ChangeEventArgs e)
+    void OnChange(ChangeEventArgs e)
     {
         Text = e.Value as string;
-        return Compute();
+        Compute();
     }
 
-    async Task Compute()
+    async void Compute()
     {
         Text ??= "";
-        await QueryStringService.UpdateQueryString(this, reloadPage: false);
+        NavigationManager.UpdateUrlUsingParameters(this, replaceHistory: true);
 
         var info = new System.Globalization.StringInfo(Text);
 

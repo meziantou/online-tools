@@ -1,5 +1,5 @@
 ﻿@page "/rrule"
-@inject QueryStringService QueryStringService
+@inject NavigationManager NavigationManager
 
 <h1>Recurrence Rule (RFC 5545)</h1>
 <p><a href="https://icalendar.org/iCalendar-RFC-5545/3-8-5-3-recurrence-rule.html">Recurrence Rule documentation</a></p>
@@ -18,33 +18,23 @@
 
 @if (result != null)
 {
-<pre class="result">@result</pre>
+    <pre class="result">@result</pre>
 }
 
 @code {
-    [QueryStringParameter]
-    public string Text { get; set; } = "FREQ=DAILY;INTERVAL=1";
+    [Parameter, SupplyParameterFromQuery]
+    public string Text { get; set; }
 
     string result;
 
-    public override async Task SetParametersAsync(ParameterView parameters)
+    protected override void OnParametersSet()
     {
-        QueryStringService.SetParametersFromQueryString(this);
-        await base.SetParametersAsync(parameters);
-        await Compute();
+        Compute();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    void Compute()
     {
-        if (firstRender)
-        {            
-            await Compute();
-            StateHasChanged();
-        }
-    }
-
-    async Task Compute()
-    {
+        Text ??= "FREQ=DAILY;INTERVAL=1";
         try
         {
             var schedule = Meziantou.Framework.Scheduling.RecurrenceRule.Parse(Text);
@@ -55,6 +45,6 @@
             result = ex.Message;
         }
 
-        await QueryStringService.UpdateQueryString(this, reloadPage: false);
+        NavigationManager.UpdateUrlUsingParameters(this, replaceHistory: true);
     }
 }

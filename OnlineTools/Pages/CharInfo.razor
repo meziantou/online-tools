@@ -1,6 +1,6 @@
 ﻿@page "/char-info"
-@inject QueryStringService QueryStringService
 @using System.Text
+@inject NavigationManager NavigationManager
 
 <h1>Character Info</h1>
 
@@ -9,107 +9,101 @@
 
 @if (result != null)
 {
-	<div style="display:flex; flex-wrap:wrap">
-		@foreach (var item in result)
-		{
-		 <div class="card">
-		  <div class="card-body">
-		   <h3 class="card-title">@item.DisplayValue</h3>
-		   <p style="margin-bottom: 0">@item.Name</p>
-		   <table>
-			<tr>
-			 <td class="column-info">Code point:</td>
-			 <td>@item.CharInfo.CodePoint (@item.DisplayCodePoint)</td>
-			</tr>
-			<tr>
-			 <td class="column-info">Category:</td>
-			 <td>@item.CharInfo.Category</td>
-			</tr>
-			<tr>
-			 <td class="column-info">Block:</td>
-			 <td>@item.Block</td>
-			</tr>
-			<tr>
-			 <td class="column-info">Escape:</td>
-			 <td>@item.Escape</td>
-			</tr>
-		   </table>
-		  </div>
-		 </div>
-		}
-	</div>
+    <div style="display:flex; flex-wrap:wrap">
+        @foreach (var item in result)
+        {
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">@item.DisplayValue</h3>
+                    <p style="margin-bottom: 0">@item.Name</p>
+                    <table>
+                        <tr>
+                            <td class="column-info">Code point:</td>
+                            <td>@item.CharInfo.CodePoint (@item.DisplayCodePoint)</td>
+                        </tr>
+                        <tr>
+                            <td class="column-info">Category:</td>
+                            <td>@item.CharInfo.Category</td>
+                        </tr>
+                        <tr>
+                            <td class="column-info">Block:</td>
+                            <td>@item.Block</td>
+                        </tr>
+                        <tr>
+                            <td class="column-info">Escape:</td>
+                            <td>@item.Escape</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
 }
 
 @code {
-	[QueryStringParameter]
-	public string Text { get; set; }
+    [Parameter, SupplyParameterFromQuery]
+    public string Text { get; set; }
 
-	Action<ChangeEventArgs> onInputEvent;
-	ICollection<CharInfoWrapper> result;
+    Action<ChangeEventArgs> onInputEvent;
+    ICollection<CharInfoWrapper> result;
 
-	protected override void OnInitialized()
-	{
-		onInputEvent = DebounceEvent<ChangeEventArgs>(e => OnChange(e), TimeSpan.FromMilliseconds(1000));
-		base.OnInitialized();
-	}
+    protected override void OnInitialized()
+    {
+        onInputEvent = DebounceEvent<ChangeEventArgs>(e => OnChange(e), TimeSpan.FromMilliseconds(1000));
+        base.OnInitialized();
+    }
 
-	protected override void OnParametersSet()
-	{
-		QueryStringService.SetParametersFromQueryString(this);
-		base.OnParametersSet();
-	}
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Compute();
+            StateHasChanged();
+        }
+    }
 
-	protected override async Task OnAfterRenderAsync(bool firstRender)
-	{
-		if (firstRender)
-		{
-			await Compute();
-			StateHasChanged();
-		}
-	}
+    void OnChange(ChangeEventArgs e)
+    {
+        Text = e.Value as string;
+        Compute();
+    }
 
-	Task OnChange(ChangeEventArgs e)
-	{
-		Text = e.Value as string;
-		return Compute();
-	}
+    void Compute()
+    {
+        Text ??= "";
+        NavigationManager.UpdateUrlUsingParameters(this, replaceHistory: true);
 
-	async Task Compute()
-	{
-		Text ??= "";
-		await QueryStringService.UpdateQueryString(this, reloadPage: false);
+        Console.WriteLine("Searching: " + Text);
+        result = UnicodeData.GetData(Text);
+    }
 
-		Console.WriteLine("Searching: " + Text);
-		result = UnicodeData.GetData(Text);
-	}
+    Action<T> DebounceEvent<T>(Action<T> action, TimeSpan interval)
+    {
+        return Debounce<T>(arg =>
+        {
+            InvokeAsync(() =>
+            {
+                action(arg);
+                StateHasChanged();
+            });
+        }, interval);
+    }
 
-	Action<T> DebounceEvent<T>(Func<T, Task> action, TimeSpan interval)
-	{
-		return Debounce<T>(arg =>
-		{
-			InvokeAsync(async () =>
-			{
-				await action(arg);
-				StateHasChanged();
-			});
-		}, interval);
-	}
+    Action<T> Debounce<T>(Action<T> action, TimeSpan interval)
+    {
+        if (action == null) throw new ArgumentNullException(nameof(action));
 
-	Action<T> Debounce<T>(Action<T> action, TimeSpan interval)
-	{
-		if (action == null) throw new ArgumentNullException(nameof(action));
-
-		var last = 0;
-		return arg =>
-		{
-			var current = System.Threading.Interlocked.Increment(ref last);
-			Task.Delay(interval).ContinueWith(task =>
-			{
-				if (current == last)
-				{
-					action(arg);
-				}
-			});
-		};
-	}
+        var last = 0;
+        return arg =>
+        {
+            var current = System.Threading.Interlocked.Increment(ref last);
+            Task.Delay(interval).ContinueWith(task =>
+            {
+                if (current == last)
+                {
+                    action(arg);
+                }
+            });
+        };
+    }
 }

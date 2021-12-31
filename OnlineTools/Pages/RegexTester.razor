@@ -3,7 +3,7 @@
 @using System.Text.RegularExpressions
 @inject IJSRuntime JSRuntime
 @inject ClipboardService ClipboardService
-@inject QueryStringService QueryStringService
+@inject NavigationManager NavigationManager
 @implements IDisposable
 
 <h1>.NET Regex Tester</h1>
@@ -18,7 +18,7 @@
         if (value != RegexOptions.None)
         {
             <label>
-                <input type="checkbox" checked="@HasValue(value)" @onchange="(e)=>SetValue(value, (bool)e.Value)" /> @value
+                <input type="checkbox" checked="@HasValue(value)" @onchange="(e)=> SetValue(value, (bool)e.Value)" /> @value
             </label>
         }
     }
@@ -46,7 +46,7 @@ else if (matches != null)
 {
     <p class="match-highlighted match-value" style="white-space: pre-wrap; font-family: monospace">@highlightedText</p>
 
-    @if(replacedText != null)
+    @if (replacedText != null)
     {
         <h4>Replacement <small><a href="/string-info?Text=@replacedText">string info</a></small></h4>
         <p class="result" style="white-space: pre-wrap; font-family: monospace">@replacedText</p>
@@ -84,20 +84,20 @@ else if (matches != null)
 }
 
 @code {
-    [QueryStringParameter]
+    [Parameter, SupplyParameterFromQuery]
     public string Pattern { get; set; }
-    
-    [QueryStringParameter]
+
+    [Parameter, SupplyParameterFromQuery]
     public bool Replace { get; set; }
 
-    [QueryStringParameter]
+    [Parameter, SupplyParameterFromQuery]
     public string Replacement { get; set; }
 
-    [QueryStringParameter]
+    [Parameter, SupplyParameterFromQuery]
     public string Text { get; set; }
 
-    [QueryStringParameter]
-    public RegexOptions Options { get; set; }
+    [Parameter, SupplyParameterFromQuery]
+    public string Options { get; set; }
 
     private string error;
     private MatchCollection matches;
@@ -105,45 +105,18 @@ else if (matches != null)
     private string replacedText;
     private System.Threading.Timer timer;
 
-    RegexContext evaluatedRegex;
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        var savedData = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "regextester");
-        if (!string.IsNullOrEmpty(savedData))
-        {
-            try
-            {
-                var context = System.Text.Json.JsonSerializer.Deserialize<RegexContext>(savedData);
-                if (context != null)
-                {
-                    Pattern = context.Pattern;
-                    Options = context.Options;
-                    Text = context.Input;
-                    Replacement = context.Replacement;
-                    Replace = Replacement != null;
-                }
-            }
-            catch
-            {
-            }
-        }
-
         timer = new System.Threading.Timer(o =>
         {
-            _ = ExecuteRegex();
+            UpdateUrl();
         }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
-    }
-
-    protected override void OnParametersSet()
-    {
-        QueryStringService.SetParametersFromQueryString(this);
-        base.OnParametersSet();
     }
 
     async Task CopyAsCsharp()
     {
-        var text = $"new Regex({WriteStringLiteral(Pattern)}, {WriteRegexOptions(Options)}, TimeSpan.FromSeconds(1))";
+        var context = GetContext();
+        var text = $"new Regex({WriteStringLiteral(context.Pattern)}, {WriteRegexOptions(context.Options)}, TimeSpan.FromSeconds(1))";
         try
         {
             await ClipboardService.WriteTextAsync(text);
@@ -154,15 +127,19 @@ else if (matches != null)
         }
     }
 
-    async Task ExecuteRegex()
+    protected override void OnParametersSet()
     {
-        var currentContext = new RegexContext(Pattern ?? "", Options, Text ?? "", Replace ? Replacement : null);
-        if (currentContext == evaluatedRegex)
-            return;
+        ExecuteRegex();
+    }
 
-        evaluatedRegex = currentContext;
-        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "regextester", System.Text.Json.JsonSerializer.Serialize(evaluatedRegex));
-        await QueryStringService.UpdateQueryString(this, reloadPage: false);
+    private void UpdateUrl()
+    {
+        NavigationManager.UpdateUrlUsingParameters(this, replaceHistory: true);
+    }
+
+    void ExecuteRegex()
+    {
+        var currentContext = GetContext();
 
         error = null;
         matches = null;
@@ -209,9 +186,6 @@ else if (matches != null)
         {
             error = ex.ToString();
         }
-
-        // Can be called from the timer
-        StateHasChanged();
     }
 
     static IEnumerable<(int, T)> EnumerateWithIndex<T>(IEnumerable<T> enumerable)
@@ -224,18 +198,22 @@ else if (matches != null)
         }
     }
 
-    bool HasValue(RegexOptions flag) => Options.HasFlag(flag);
+    bool HasValue(RegexOptions flag) => GetContext().Options.HasFlag(flag);
 
     void SetValue(RegexOptions flag, bool enable)
     {
+        var options = GetContext().Options;
         if (enable)
         {
-            Options |= flag;
+            options |= flag;
         }
         else
         {
-            Options &= ~flag;
+            options &= ~flag;
         }
+
+        Options = options.ToString();
+        UpdateUrl();
     }
 
     public void Dispose()
@@ -243,7 +221,7 @@ else if (matches != null)
         timer?.Dispose();
     }
 
-    private string WriteRegexOptions(RegexOptions options)
+    private static string WriteRegexOptions(RegexOptions options)
     {
         if (options == RegexOptions.None)
             return "RegexOptions.None";
@@ -263,7 +241,7 @@ else if (matches != null)
         return string.Join(" | ", values.Select(v => "RegexOptions." + Enum.GetName(v)));
     }
 
-    private string WriteStringLiteral(string value)
+    private static string WriteStringLiteral(string value)
     {
         var sb = new System.Text.StringBuilder();
         sb.Append("\"");
@@ -318,6 +296,16 @@ else if (matches != null)
         }
         sb.Append("\"");
         return sb.ToString();
+    }
+
+    private RegexContext GetContext()
+    {
+        if (!Enum.TryParse<RegexOptions>(Options, out var regexOptions))
+        {
+            regexOptions = RegexOptions.None;
+        }
+
+        return new RegexContext(Pattern ?? "", regexOptions, Text ?? "", Replace ? Replacement : null);
     }
 
     record RegexContext(string Pattern, RegexOptions Options, string Input, string Replacement);
