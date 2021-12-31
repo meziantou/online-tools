@@ -1,0 +1,73 @@
+﻿@page "/numbers"
+@using Meziantou.Framework
+@using System.Numerics
+@inject NavigationManager NavigationManager
+
+<h1>Number</h1>
+
+<input class="form-control code" @oninput="OnInput" value="@Text" />
+
+
+@if (result != null)
+{
+    <pre class="result">Decimal: @SplitGroup(result.Value.ToString(), 3)</pre>
+    <pre class="result">   Hexa: @SplitGroup(result.Value.ToString("X"), 4)</pre>
+    <pre class="result">  Octal: @SplitGroup(Convert.ToString(result.Value, toBase: 8), 3)</pre>
+    <pre class="result"> Binary: @SplitGroup(Convert.ToString(result.Value, toBase: 2), 4)</pre>
+}
+
+@code {
+    [Parameter, SupplyParameterFromQuery]
+    public string Text { get; set; }
+
+    long? result;
+
+    protected override void OnParametersSet()
+    {
+        Compute();
+    }
+
+    void OnInput(ChangeEventArgs e)
+    {
+        Text = e.Value as string;
+        Compute();
+    }
+
+    void Compute()
+    {
+        NavigationManager.UpdateUrlUsingParameters(this, replaceHistory: true);
+
+        if (long.TryParse(Text, out var result))
+        {
+            this.result = result;
+        }
+        else
+        {
+            this.result = null;
+        }
+    }
+
+    string SplitGroup(string text, int blockSize)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        var newString = "";
+        var i = text.Length;
+        while (true)
+        {
+            if (newString != "")
+            {
+                newString = " " + newString;
+            }
+
+            newString = text.Substring(Math.Max(0, i - blockSize), Math.Min(i, blockSize)) + newString;
+
+            i -= blockSize;
+            if (i <= 0)
+                break;
+        }
+
+        return newString;
+    }
+}
