@@ -154,6 +154,7 @@
     private async Task StartRetries(IGitLabClient client, Project project, string reference, PipelineVariableCreate[] variables, List<Pipeline> pipelines, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
+        Console.WriteLine("Starting pipelines");
         try
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -236,7 +237,7 @@
         public string GitLabToken { get; set; }
         public string ProjectUrl { get; set; }
         public string Reference { get; set; }
-        public string Variables { get; set; }
+        public string Variables { get; set; } = "";
         public int ParallelJobs { get; set; } = 1;
     }
 }
