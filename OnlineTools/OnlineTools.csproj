@@ -10,12 +10,12 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="6.0.9" PrivateAssets="all" />
     <PackageReference Include="LoremNET" Version="2.0.0" />
     <PackageReference Include="Meziantou.AspNetCore.Components" Version="2.0.2" />
-    <PackageReference Include="Meziantou.Framework.ByteSize" Version="1.3.3" />
+    <PackageReference Include="Meziantou.Framework.ByteSize" Version="2.1.0" />
     <PackageReference Include="Meziantou.Framework.Scheduling" Version="2.0.3" />
     <PackageReference Include="Meziantou.GitLabClient" Version="1.1.26" />
     <PackageReference Include="ncrontab" Version="3.3.1" />
     <PackageReference Include="UnicodeInformation" Version="2.6.0" />
-    <PackageReference Include="YamlDotNet" Version="11.2.1" />
+    <PackageReference Include="YamlDotNet" Version="12.0.1" />
   </ItemGroup>
 
   <ItemGroup>
