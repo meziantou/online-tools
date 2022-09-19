@@ -25,7 +25,7 @@ jobs:
           meziantou.html append-version --file-pattern "OnlineTools/bin/Release/net6.0/publish/wwwroot/**/*.html"
       
       - name: GitHub Pages action
-        if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+        if: ${{ github.ref == 'refs/heads/main' }} # Publish only when the push is on master
         uses: peaceiris/actions-gh-pages@v3.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
