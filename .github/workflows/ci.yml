@@ -1,8 +1,16 @@
 name: 'Publish application'
-on: push
+on: 
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
 
 jobs:
   build:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     env:
       DOTNET_NOLOGO: true
@@ -24,14 +32,25 @@ jobs:
           dotnet tool install --global Meziantou.Framework.Html.Tool
           meziantou.html append-version --file-pattern "OnlineTools/bin/Release/net6.0/publish/wwwroot/**/*.html"
       
-      - name: GitHub Pages action
-        if: ${{ github.ref == 'refs/heads/main' }} # Publish only when the push is on master
-        uses: peaceiris/actions-gh-pages@v3.8.0
+      - name: Build And Deploy
+        id: builddeploy
+        uses: Azure/static-web-apps-deploy@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: OnlineTools/bin/Release/net6.0/publish/wwwroot
-          allow_empty_commit: false
-          keep_files: false
-          force_orphan: true
-          cname: tools.meziantou.net
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_GROUND_0F9AEF10F }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "/"
+          api_location: ""
+          output_location: "OnlineTools/bin/Release/net6.0/publish/wwwroot"
+
+  close_pull_request_job:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request Job
+    steps:
+      - name: Close Pull Request
+        id: closepullrequest
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_GROUND_0F9AEF10F }}
+          action: "close"
