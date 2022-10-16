@@ -42,6 +42,7 @@ jobs:
           app_location: "/"
           api_location: ""
           output_location: "OnlineTools/bin/Release/net6.0/publish/wwwroot"
+          skip_app_build: true
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
