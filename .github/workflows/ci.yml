@@ -1,5 +1,5 @@
 name: 'Publish application'
-on: 
+on:
   push:
     branches:
       - main
@@ -17,21 +17,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
-      
+
       - name: Test
         run: dotnet test
-      
+
       - name: Publish
         run: dotnet publish OnlineTools/OnlineTools.csproj --configuration Release
-      
+
       - name: Cache buster
         run: |
           dotnet tool install --global Meziantou.Framework.Html.Tool
-          meziantou.html append-version --file-pattern "OnlineTools/bin/Release/net6.0/publish/wwwroot/**/*.html"
-      
+          meziantou.html append-version --file-pattern "OnlineTools/bin/Release/net7.0/publish/wwwroot/**/*.html"
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -39,7 +39,7 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_GROUND_0F9AEF10F }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "OnlineTools/bin/Release/net6.0/publish/wwwroot"
+          app_location: "OnlineTools/bin/Release/net7.0/publish/wwwroot"
           api_location: ""
           output_location: ""
           skip_app_build: true
