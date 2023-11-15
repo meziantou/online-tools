@@ -25,7 +25,7 @@ namespace OnlineTools.Utils
             int code;
             if (search.StartsWith("\\u", StringComparison.OrdinalIgnoreCase) || search.StartsWith("U+", StringComparison.OrdinalIgnoreCase) || search.StartsWith("&#", StringComparison.OrdinalIgnoreCase))
             {
-                var value = search.Substring(2);
+                var value = search[2..];
                 if (int.TryParse(value, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out code))
                     return new[] { new CharInfoWrapper(UnicodeInfo.GetCharInfo(code)) };
             }
@@ -34,10 +34,7 @@ namespace OnlineTools.Utils
                 return new[] { new CharInfoWrapper(UnicodeInfo.GetCharInfo(code)) };
 
             // Search by description
-            if (s_index == null)
-            {
-                s_index = BuildUnicodeIndex();
-            }
+            s_index ??= BuildUnicodeIndex();
 
             var result = new List<CharInfoWrapper>();
             search = search.ToUpperInvariant();
@@ -52,7 +49,6 @@ namespace OnlineTools.Utils
             }
 
             return result;
-
         }
 
         private static List<IndexEntry> BuildUnicodeIndex()
