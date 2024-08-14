@@ -15,7 +15,7 @@
     <PackageReference Include="Meziantou.GitLabClient" Version="1.1.26" />
     <PackageReference Include="ncrontab" Version="3.3.3" />
     <PackageReference Include="UnicodeInformation" Version="2.7.1" />
-    <PackageReference Include="YamlDotNet" Version="15.3.0" />
+    <PackageReference Include="YamlDotNet" Version="16.0.0" />
   </ItemGroup>
 
   <ItemGroup>
