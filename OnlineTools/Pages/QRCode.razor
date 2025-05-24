@@ -1,0 +1,50 @@
+@page "/qr-code"
+@using QRCoder
+<h1>QR Code generator</h1>
+
+<textarea class="form-control code" @oninput="GenerateQRCode"></textarea>
+<button type="button" @onclick="Click">Generate</button>
+
+<div>
+    @(new MarkupString(qrcode ?? ""))
+</div>
+
+<h2>Examples</h2>
+<div>
+    <ul>
+        <li><code>https://example.com</code></li>
+        <li><code>mailto:john.doe@example.com?subject=sample&body=sample</code></li>
+        <li><code>tel:+1234567890</code></li>
+        <li><code>SMSTO:+1234567890:message</code></li>
+        <li><code>WIFI:T:WPA;S:WIFI_SSID;P:Pa$$w0rd</code></li>
+        <li>VCard: <a href="https://en.wikipedia.org/wiki/VCard#Example">https://en.wikipedia.org/wiki/VCard#Example</a></li>
+    </ul>
+</div>
+
+
+@code {
+    string qrcode;
+
+    public QRCode()
+    {
+        GenerateQRCode("");
+    }
+
+    void Click()
+    {
+        StateHasChanged();
+    }
+
+    void GenerateQRCode(ChangeEventArgs e)
+    {
+        GenerateQRCode(e.Value?.ToString() ?? "");
+    }
+
+    void GenerateQRCode(string text)
+    {
+        using var qrGenerator = new QRCodeGenerator();
+        var qrCodeData = qrGenerator.CreateQrCode(text ?? "", QRCodeGenerator.ECCLevel.Q);
+        using var svg = new SvgQRCode(qrCodeData);
+        this.qrcode = svg.GetGraphic(10);
+    }
+}
