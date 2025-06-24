@@ -6,11 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.5" PrivateAssets="all" />
+    <PackageReference Include="Meziantou.Framework.CommandLine" Version="3.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.6" PrivateAssets="all" />
     <PackageReference Include="LoremNET" Version="2.0.0" />
-    <PackageReference Include="Meziantou.AspNetCore.Components" Version="2.0.16" />
-    <PackageReference Include="Meziantou.Framework.ByteSize" Version="2.1.4" />
+    <PackageReference Include="Meziantou.AspNetCore.Components" Version="2.0.17" />
+    <PackageReference Include="Meziantou.Framework.ByteSize" Version="2.1.5" />
     <PackageReference Include="Meziantou.Framework.Scheduling" Version="2.0.6" />
     <PackageReference Include="Meziantou.GitLabClient" Version="1.1.26" />
     <PackageReference Include="ncrontab" Version="3.3.3" />
