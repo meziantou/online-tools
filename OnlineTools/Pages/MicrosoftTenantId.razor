@@ -4,12 +4,14 @@
 
 <h1>Microsoft Tenant ID Finder</h1>
 
-<div class="form-group">
-    <label for="domain">Domain Name</label>
-    <input id="domain" class="form-control" @bind="domain" placeholder="e.g. microsoft.com" />
-</div>
+<form @onsubmit="FindTenantId">
+    <div class="form-group">
+        <label for="domain">Domain Name</label>
+        <input id="domain" class="form-control" @bind="domain" placeholder="e.g. meziantou.net" />
+    </div>
 
-<button class="btn btn-primary" @onclick="FindTenantId">Find Tenant ID</button>
+    <button type="submit" class="btn btn-primary">Find Tenant ID</button>
+</form>
 
 @if (isLoading)
 {
