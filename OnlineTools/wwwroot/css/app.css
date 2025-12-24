@@ -37,42 +37,44 @@
     --match-bg-1: rgb(116, 196, 255);
 }
 
-[data-theme="dark"] {
-    --bg-primary: #1e1e1e;
-    --bg-secondary: #2d2d2d;
-    --bg-tertiary: rgba(255,255,255,0.06);
-    --text-primary: #e0e0e0;
-    --text-secondary: #b0b0b0;
-    --text-muted: #888888;
-    --border-color: #404040;
-    --border-light: #333333;
-    --link-color: #58a6ff;
-    --link-hover: #79c0ff;
-    --btn-primary-bg: #1f6feb;
-    --btn-primary-border: #1f6feb;
-    --btn-primary-hover: #388bfd;
-    --btn-secondary-bg: #484f58;
-    --btn-secondary-hover: #30363d;
-    --alert-success-bg: #0d4429;
-    --alert-success-text: #3fb950;
-    --alert-success-border: #1b7f37;
-    --alert-danger-bg: #4c1e24;
-    --alert-danger-text: #f85149;
-    --alert-danger-border: #d1242f;
-    --header-bg: #1e1e1e;
-    --header-text: #e0e0e0;
-    --header-hover-bg: #2d2d2d;
-    --header-hover-text: #ffffff;
-    --shadow-color: rgba(0,0,0,0.3);
-    --focus-shadow: rgba(31, 111, 235, 0.4);
-    --ci-success: #3fb950;
-    --ci-failed: #f85149;
-    --ci-pending: #d29922;
-    --ci-running: #58a6ff;
-    --ci-canceled: #8b949e;
-    --blazor-error-bg: #4c3d00;
-    --match-bg-0: rgba(88, 166, 255, 0.3);
-    --match-bg-1: rgba(88, 166, 255, 0.5);
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #1e1e1e;
+        --bg-secondary: #2d2d2d;
+        --bg-tertiary: rgba(255,255,255,0.06);
+        --text-primary: #e0e0e0;
+        --text-secondary: #b0b0b0;
+        --text-muted: #888888;
+        --border-color: #404040;
+        --border-light: #333333;
+        --link-color: #58a6ff;
+        --link-hover: #79c0ff;
+        --btn-primary-bg: #1f6feb;
+        --btn-primary-border: #1f6feb;
+        --btn-primary-hover: #388bfd;
+        --btn-secondary-bg: #484f58;
+        --btn-secondary-hover: #30363d;
+        --alert-success-bg: #0d4429;
+        --alert-success-text: #3fb950;
+        --alert-success-border: #1b7f37;
+        --alert-danger-bg: #4c1e24;
+        --alert-danger-text: #f85149;
+        --alert-danger-border: #d1242f;
+        --header-bg: #1e1e1e;
+        --header-text: #e0e0e0;
+        --header-hover-bg: #2d2d2d;
+        --header-hover-text: #ffffff;
+        --shadow-color: rgba(0,0,0,0.3);
+        --focus-shadow: rgba(31, 111, 235, 0.4);
+        --ci-success: #3fb950;
+        --ci-failed: #f85149;
+        --ci-pending: #d29922;
+        --ci-running: #58a6ff;
+        --ci-canceled: #8b949e;
+        --blazor-error-bg: #4c3d00;
+        --match-bg-0: rgba(88, 166, 255, 0.3);
+        --match-bg-1: rgba(88, 166, 255, 0.5);
+    }
 }
 
 /* Reset & Base */
@@ -265,36 +267,6 @@ app {
 
 .header-row svg {
     margin-right: 0.5rem;
-}
-
-/* Theme Toggle Button */
-.theme-toggle {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--header-text);
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
-}
-
-.theme-toggle:hover {
-    background-color: var(--header-hover-bg);
-}
-
-.theme-toggle svg {
-    width: 20px;
-    height: 20px;
-    margin: 0;
-}
-
-.header-links {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 .content {
