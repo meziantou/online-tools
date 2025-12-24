@@ -3,7 +3,10 @@
 <h1>QR Code generator</h1>
 
 <textarea class="form-control code" @oninput="GenerateQRCode"></textarea>
-<button type="button" @onclick="Click">Generate</button>
+
+<div>
+    <button class="btn btn-secondary" @onclick="Click">Generate</button>
+</div>
 
 <div>
     @(new MarkupString(qrcode ?? ""))
