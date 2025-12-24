@@ -19,6 +19,8 @@ function updateThemeIcon(theme) {
     const darkIcon = document.getElementById('theme-icon-dark');
     
     if (lightIcon && darkIcon) {
+        // When in dark mode, show sun icon (to indicate "switch to light mode")
+        // When in light mode, show moon icon (to indicate "switch to dark mode")
         if (theme === 'dark') {
             lightIcon.style.display = 'block';
             darkIcon.style.display = 'none';
@@ -29,14 +31,13 @@ function updateThemeIcon(theme) {
     }
 }
 
-// Update icon on page load
-document.addEventListener('DOMContentLoaded', function() {
+function initializeThemeIcon() {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     updateThemeIcon(currentTheme);
-});
+}
+
+// Update icon on page load
+document.addEventListener('DOMContentLoaded', initializeThemeIcon);
 
 // Also update when Blazor re-renders
-window.addEventListener('load', function() {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-    updateThemeIcon(currentTheme);
-});
+window.addEventListener('load', initializeThemeIcon);
