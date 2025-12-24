@@ -1,5 +1,5 @@
 ﻿.column-info {
-    color: gray;
+    color: var(--text-muted, gray);
     text-align:left;
 }
 
