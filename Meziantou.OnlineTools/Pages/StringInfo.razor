@@ -1,0 +1,98 @@
+@page "/string-info"
+@inject NavigationManager NavigationManager
+@using System.Text
+
+<h1>String Info</h1>
+
+<textarea class="form-control code" @oninput="OnChange">@Text</textarea>
+
+<div>
+    <button class="btn btn-secondary" @onclick="NormalizeC">Normalize Form C</button>
+    <button class="btn btn-secondary" @onclick="NormalizeD">Normalize Form D</button>
+</div>
+
+@if (result != null)
+{
+    <pre class="result">@result</pre>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Character</th>
+                <th>Unicode scalar</th>
+                <th>UTF-16</th>
+                <th>UTF-8</th>
+                <th>Category</th>
+            </tr>
+        </thead>
+        @foreach (var rune in (Text ?? "").EnumerateRunes())
+        {
+            <tr>
+                <td><code>@rune</code></td>
+                <td><a href="char-info?Text=@(Uri.EscapeDataString($"U+{rune.Value:X4}"))">U+@rune.Value.ToString("X4")</a></td>
+                <td>@GetUtf16(rune)</td>
+                <td>@GetUtf8(rune)</td>
+                <td>@Rune.GetUnicodeCategory(rune)</td>
+            </tr>
+        }
+    </table>
+}
+
+@code {
+    [Parameter, SupplyParameterFromQuery]
+    public string? Text { get; set; }
+
+    string? result;
+
+    protected override void OnParametersSet()
+    {
+        Compute();
+    }
+
+    void OnChange(ChangeEventArgs e)
+    {
+        Text = e.Value as string;
+        Compute();
+    }
+
+    void Compute()
+    {
+        Text ??= "";
+        NavigationManager.UpdateUrlUsingParameters(this, replaceHistory: true);
+
+        var info = new System.Globalization.StringInfo(Text);
+
+        var sb = new System.Text.StringBuilder();
+
+        sb.AppendLine("Length:   " + Text.Length);
+        sb.AppendLine("Runes:    " + Text.EnumerateRunes().Count());
+        sb.AppendLine("Graphems: " + info.LengthInTextElements);
+
+        result = sb.ToString();
+    }
+
+    string GetUtf16(System.Text.Rune rune)
+    {
+        var chars = new char[rune.Utf16SequenceLength];
+        rune.EncodeToUtf16(chars);
+
+        return string.Join(' ', chars.Select(c => "0x" + ((int)c).ToString("X4")));
+    }
+
+    string GetUtf8(System.Text.Rune rune)
+    {
+        var bytes = new byte[rune.Utf8SequenceLength];
+        rune.EncodeToUtf8(bytes);
+
+        return string.Join(' ', bytes.Select(c => "0x" + ((int)c).ToString("X")));
+    }
+
+    void NormalizeC()
+    {
+        Text = Text?.Normalize(NormalizationForm.FormC);
+    }
+
+    void NormalizeD()
+    {
+        Text = Text?.Normalize(NormalizationForm.FormD);
+    }
+}

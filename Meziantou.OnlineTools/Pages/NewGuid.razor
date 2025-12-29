@@ -1,0 +1,31 @@
+@page "/new-guid"
+@using Meziantou.Framework
+
+<h1>Guid Generator</h1>
+
+<div>
+    <button class="btn btn-secondary" @onclick="Compute">Generate</button>
+</div>
+
+@if (result != null)
+{
+	<pre class="result">@result</pre>
+}
+
+@code {
+    string? result;
+
+    protected override void OnInitialized()
+    {
+        Compute();
+        base.OnInitialized();
+    }
+
+    void Compute()
+    {
+        // https://docs.microsoft.com/en-us/dotnet/api/system.guid.tostring?view=netcore-3.1#System_Guid_ToString_System_String_
+        var guid = Guid.NewGuid();
+        var formats = new[] { "N", "D", "B", "P", "X" };
+        result = string.Join("\n", formats.Select(f => guid.ToString(f)));
+    }
+}

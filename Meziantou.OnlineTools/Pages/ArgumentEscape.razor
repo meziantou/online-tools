@@ -1,0 +1,46 @@
+@page "/escape-argument"
+@using System.Text
+@using System.IO
+
+<h1>Base64 Encode / Decode</h1>
+
+<textarea class="form-control code" @bind="text"></textarea>
+
+<div>
+    <button class="btn btn-secondary" @onclick="Encode">Escape</button>
+    <button class="btn btn-secondary" @onclick="EncodeCmd">Escape Windows cmd</button>
+</div>
+
+@if (result != null)
+{
+    <pre class="result">@result</pre>
+}
+
+@code {
+    string? text;
+    string? result;
+
+    void Encode()
+    {
+        try
+        {
+            result = Meziantou.Framework.CommandLineBuilder.WindowsQuotedArgument(text ?? "");
+        }
+        catch (Exception ex)
+        {
+            result = ex.Message;
+        }
+    }
+
+    void EncodeCmd()
+    {
+        try
+        {
+            result = Meziantou.Framework.CommandLineBuilder.WindowsCmdArgument(text ?? "");
+        }
+        catch (Exception ex)
+        {
+            result = ex.Message;
+        }
+    }
+}

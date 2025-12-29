@@ -1,0 +1,59 @@
+@page "/xml-encode"
+@using System.Xml.Linq
+
+<h1>XML Encode / Decode</h1>
+
+<textarea class="form-control code" @bind="text"></textarea>
+
+<div>
+    <button class="btn btn-secondary" @onclick="EncodeElement">Encode element</button>
+    <button class="btn btn-secondary" @onclick="EncodeAttribute">Encode attribute</button>
+    <button class="btn btn-secondary" @onclick="DecodeElement">Decode element</button>
+    <button class="btn btn-secondary" @onclick="DecodeAttribute">Decode attribute</button>
+</div>
+
+@if (result != null)
+{
+    <pre class="result">@result</pre>
+}
+
+@code {
+    string? text;
+    string? result;
+
+    void EncodeElement()
+    {
+        result = new XElement("a", text ?? "").LastNode?.ToString();
+    }
+
+    void DecodeElement()
+    {
+        try
+        {
+            var element = XElement.Parse("<a>" + text + "</a>");
+            result = element.Value;
+        }
+        catch (Exception ex)
+        {
+            result = "Invalid xml: " + ex.Message;
+        }
+    }
+
+    void EncodeAttribute()
+    {
+        result = new XAttribute("a", text ?? "").ToString()[3..^1];
+    }
+
+    void DecodeAttribute()
+    {
+        try
+        {
+            var element = XElement.Parse("<a a=\"" + text + "\"></a>");
+            result = element.Attribute("a")?.Value;
+        }
+        catch (Exception ex)
+        {
+            result = "Invalid xml: " + ex.Message;
+        }
+    }
+}

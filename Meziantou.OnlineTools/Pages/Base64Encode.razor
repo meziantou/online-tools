@@ -1,0 +1,79 @@
+@page "/base64-encode"
+@using System.Text
+@using System.IO
+
+<h1>Base64 Encode / Decode</h1>
+
+<textarea class="form-control code" @bind="text"></textarea>
+
+<select @bind="encoding">
+    <option value="utf-8">UTF-8</option>
+    <option value="utf-16">UTF-16</option>
+    <option value="utf-32">UTF-32</option>
+    <option value="ascii">ASCII</option>
+</select>
+
+<div>
+    <label>Or upload a file</label>
+    <InputFile OnChange="@OnInputFileChange" />
+</div>
+
+<div>
+    <button class="btn btn-secondary" @onclick="Encode">Encode</button>
+    <button class="btn btn-secondary" @onclick="Decode">Decode</button>
+</div>
+
+@if (result != null)
+{
+    <pre class="result">@result</pre>
+}
+
+@code {
+    string? text;
+    string? encoding;
+    string? result;
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        using var stream = e.File.OpenReadStream();
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        result = Convert.ToBase64String(ms.ToArray());
+    }
+
+    void Encode()
+    {
+        try
+        {
+            result = Convert.ToBase64String(GetEncoding().GetBytes(text ?? ""));
+        }
+        catch (Exception ex)
+        {
+            result = ex.Message;
+        }
+    }
+
+    void Decode()
+    {
+        try
+        {
+            result = GetEncoding().GetString(Convert.FromBase64String(text ?? ""));
+        }
+        catch (Exception ex)
+        {
+            result = ex.Message;
+        }
+    }
+
+    Encoding GetEncoding()
+    {
+        return encoding switch
+        {
+            "ascii" => Encoding.ASCII,
+            "utf-16" => Encoding.Unicode,
+            "utf-32" => Encoding.UTF32,
+            _ => Encoding.UTF8,
+        };
+    }
+}

@@ -1,0 +1,30 @@
+<Project Sdk="Meziantou.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <BlazorEnableCompression>false</BlazorEnableCompression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Meziantou.Framework.CommandLine" Version="3.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.1" PrivateAssets="all" />
+    <PackageReference Include="LoremNET" Version="2.0.0" />
+    <PackageReference Include="Meziantou.AspNetCore.Components" Version="2.0.27" />
+    <PackageReference Include="Meziantou.Framework.ByteSize" Version="2.1.8" />
+    <PackageReference Include="Meziantou.Framework.Scheduling" Version="2.0.9" />
+    <PackageReference Include="Meziantou.GitLabClient" Version="1.1.26" />
+    <PackageReference Include="ncrontab" Version="3.4.0" />
+    <PackageReference Include="QRCoder" Version="1.7.0" />
+    <PackageReference Include="UnicodeInformation" Version="2.7.1" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Pages/RegexTester.razor.css" CssScope="b-regex" />
+  </ItemGroup>
+
+   <Target Name="CopyFiles" BeforeTargets="BeforeBuild">
+    <Copy SourceFiles="wwwroot/index.html" DestinationFiles="wwwroot/404.html" />
+  </Target>
+
+</Project>

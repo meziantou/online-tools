@@ -1,0 +1,243 @@
+@page "/run-gitlab-pipelines"
+@using System.Threading
+@using Meziantou.GitLab
+@using System.Text.RegularExpressions
+@using System.Globalization
+@using System.Diagnostics
+@using System.Text.Json
+@implements IDisposable
+@inject IJSRuntime JSRuntime
+
+<h1>Run GitLab pipelines!</h1>
+
+<EditForm Model="form" OnValidSubmit="OnSubmit">
+    <div class="form-group">
+        <label>GitLab project url</label>
+        <InputText class="form-control" type="text" @bind-Value="form.ProjectUrl" disabled="@isProcessing" />
+    </div>
+
+    <div class="form-group">
+        <label>Reference (branch / tag / sha)</label>
+        <InputText class="form-control" type="text" @bind-Value="form.Reference" disabled="@isProcessing" />
+    </div>
+
+    <div class="form-group">
+        <label>Variables (name=value)</label>
+        <InputTextArea class="form-control" type="text" @bind-Value="form.Variables" disabled="@isProcessing" rows=3 />
+    </div>
+
+    <div class="form-group">
+        <label>GitLab access token (<a href="@GetGenerateTokenUrl()" target="_blank">generate</a>)</label>
+        <InputText class="form-control" type="password" @bind-Value="form.GitLabToken" disabled="@isProcessing" />
+    </div>
+
+    <div class="form-group">
+        <label>Number of parallel pipelines</label>
+        <InputNumber class="form-control" @bind-Value="form.ParallelJobs" min="1" max="20" />
+    </div>
+
+    @if (!isProcessing)
+    {
+        <button type="submit" class="btn btn-primary">Start</button>
+    }
+    else
+    {
+        <button type="submit" class="btn btn-secondary">Stop</button>
+    }
+</EditForm>
+
+@if (pipelines.Count > 0)
+{
+    <div>Total pipelines: @pipelines.Count<br />Failed jobs: @pipelines.Where(pipeline => pipeline.Status is PipelineStatus.Failed).Count()</div>
+
+    <ul>
+        @foreach (var pipeline in pipelines.Where(job => job.Status is PipelineStatus.Created or PipelineStatus.Pending or PipelineStatus.Running).OrderByDescending(job => job.CreatedAt))
+        {
+            <li>@RenderPipeline(pipeline)</li>
+        }
+
+        @foreach (var pipeline in pipelines.Where(job => job.Status is PipelineStatus.Failed).OrderByDescending(job => job.CreatedAt))
+        {
+            <li>@RenderPipeline(pipeline)</li>
+        }
+
+        @foreach (var pipeline in pipelines.Where(job => job.Status is not PipelineStatus.Created and not PipelineStatus.Pending and not PipelineStatus.Running and not PipelineStatus.Failed).OrderByDescending(job => job.CreatedAt))
+        {
+            <li>@RenderPipeline(pipeline)</li>
+        }
+    </ul>
+}
+
+@code {
+    RetryGitLabJobForm form = new();
+    bool isProcessing;
+    CancellationTokenSource? cts;
+    string? errorMessage;
+
+    List<Pipeline> pipelines = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var lastRun = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "gitlab_pipeline_lastRun");
+        if (lastRun != null)
+        {
+            form = JsonSerializer.Deserialize<RetryGitLabJobForm>(lastRun) ?? new();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (cts != null)
+        {
+            cts.Cancel();
+            cts.Dispose();
+        }
+    }
+
+    public async Task OnSubmit()
+    {
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "gitlab_pipeline_lastRun", JsonSerializer.Serialize(form));
+
+        if (isProcessing)
+        {
+            cts?.Cancel();
+            cts?.Dispose();
+            isProcessing = false;
+        }
+        else
+        {
+            if (!Uri.TryCreate(form.ProjectUrl, UriKind.Absolute, out var uri))
+            {
+                errorMessage = "Invalid project url";
+                return;
+            }
+
+            var projectPath = new PathWithNamespace(uri.AbsolutePath.Trim('/'));
+
+            try
+            {
+                using var client = GitLabClient.Create(new Uri(uri.Scheme + "://" + uri.Authority), form.GitLabToken ?? "");
+                var project = await client.Projects.GetByIdAsync(projectPath);
+                if (project == null)
+                {
+                    errorMessage = $"Cannot find the project '{projectPath}'";
+                    return;
+                }
+
+                var variables = from entry in form.Variables.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                                let parts = entry.Split('=')
+                                select new PipelineVariableCreate(parts[0], parts[1]);
+
+                cts = new();
+                var pipelines = this.pipelines = new List<Pipeline>();
+                isProcessing = true;
+                StateHasChanged();
+
+                await StartRetries(client, project, form.Reference ?? "", variables.ToArray(), pipelines, cts.Token);
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.ToString();
+                return;
+            }
+        }
+    }
+
+    private string GetGenerateTokenUrl()
+    {
+        if (!Uri.TryCreate(form.ProjectUrl, UriKind.Absolute, out var uri))
+            return "https://gitlab.com/-/profile/personal_access_tokens";
+
+        return uri.Scheme + "://" + uri.Authority + "/-/profile/personal_access_tokens";
+    }
+
+    private async Task StartRetries(IGitLabClient client, Project project, string reference, PipelineVariableCreate[] variables, List<Pipeline> pipelines, CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        Console.WriteLine("Starting pipelines");
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                // Refresh in-progress pipelines
+                var inProgressJobs = 0;
+                for (var i = 0; i < pipelines.Count; i++)
+                {
+                    if (!IsCompleted(pipelines[i]))
+                    {
+                        pipelines[i] = (await client.Pipelines.GetPipelineAsync(project, pipelines[i], cancellationToken: cancellationToken))!;
+                        if (!IsCompleted(pipelines[i]))
+                        {
+                            inProgressJobs++;
+                        }
+                    }
+                }
+
+                // Start new jobs
+                for (var i = inProgressJobs; i < form.ParallelJobs; i++)
+                {
+                    try
+                    {
+                        pipelines.Add(await client.Pipelines.CreatePipelineAsync(project, reference, variables, cancellationToken: cancellationToken));
+                    }
+                    catch (Exception ex)
+                    {
+                        errorMessage = ex.ToString();
+                    }
+                }
+
+                _ = InvokeAsync(() => StateHasChanged());
+                await Task.Delay(10000, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+        {
+            Console.WriteLine("Canceled");
+        }
+    }
+
+    private static bool IsCompleted(Pipeline pipeline) => pipeline.Status is PipelineStatus.Canceled or PipelineStatus.Failed or PipelineStatus.Success;
+
+    private RenderFragment<Pipeline> RenderPipeline
+    {
+        get
+        {
+            return pipeline =>
+				@<a href="@pipeline.WebUrl" target="_blank">
+					<span class="@GetClassName(pipeline)">
+						<svg><use href="/gitlab-icons.svg#@GetIconName(pipeline)"></use></svg>
+					</span>
+					<span>@pipeline.Id</span>
+				</a>
+				;
+            static string GetClassName(Pipeline pipeline)
+            {
+                return "ci-status-icon ci-status-icon-" + pipeline.Status.ToString().ToLowerInvariant();
+            }
+
+            static string GetIconName(Pipeline pipeline)
+            {
+                return pipeline.Status switch
+                {
+                    PipelineStatus.Canceled => "status_canceled",
+                    PipelineStatus.Created => "status_created",
+                    PipelineStatus.Failed => "status_failed",
+                    PipelineStatus.Pending => "status_pending",
+                    PipelineStatus.Running => "status_running",
+                    PipelineStatus.Skipped => "status_skipped",
+                    PipelineStatus.Success => "status_success",
+                    _ => "",
+                };
+            }
+        }
+    }
+
+    class RetryGitLabJobForm
+    {
+        public string? GitLabToken { get; set; }
+        public string? ProjectUrl { get; set; }
+        public string? Reference { get; set; }
+        public string Variables { get; set; } = "";
+        public int ParallelJobs { get; set; } = 1;
+    }
+}

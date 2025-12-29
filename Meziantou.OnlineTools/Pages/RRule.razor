@@ -1,0 +1,52 @@
+@page "/rrule"
+@inject NavigationManager NavigationManager
+
+<h1>Recurrence Rule (RFC 5545)</h1>
+<p><a href="https://icalendar.org/iCalendar-RFC-5545/3-8-5-3-recurrence-rule.html">Recurrence Rule documentation</a></p>
+
+<input class="form-control code" list="RecurrenceRuleSamples" @bind="Text" spellcheck="false" />
+<datalist id="RecurrenceRuleSamples">
+    <option>FREQ=DAILY;INTERVAL=1</option>
+    <option>FREQ=WEEKLY;BYDAY=FR;INTERVAL=2</option>
+    <option>FREQ=MONTHLY;BYMONTHDAY=1;INTERVAL=1</option>
+    <option>FREQ=MONTHLY;BYSETPOS=-1;BYDAY=MO,TU,WE,TH,FR;INTERVAL=1</option>
+</datalist>
+
+<div>
+    <button class="btn btn-secondary" @onclick="Compute">Get occurences</button>
+</div>
+
+@if (result != null)
+{
+    <pre class="result">@result</pre>
+}
+
+@code {
+    [Parameter, SupplyParameterFromQuery]
+    public string? Text { get; set; }
+
+    string? result;
+
+    protected override void OnParametersSet()
+    {
+        Compute();
+    }
+
+    void Compute()
+    {
+        Text ??= "FREQ=DAILY;INTERVAL=1";
+        try
+        {
+            var schedule = Meziantou.Framework.Scheduling.RecurrenceRule.Parse(Text);
+#pragma warning disable RS0030 // Do not use banned APIs
+            result = string.Join('\n', schedule.GetNextOccurrences(DateTime.Now).Take(50));
+#pragma warning restore RS0030
+        }
+        catch (Exception ex)
+        {
+            result = ex.Message;
+        }
+
+        NavigationManager.UpdateUrlUsingParameters(this, replaceHistory: true);
+    }
+}

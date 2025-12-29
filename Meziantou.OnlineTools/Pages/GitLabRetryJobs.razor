@@ -1,0 +1,258 @@
+@page "/retry-gitlab-job"
+@using System.Threading
+@using Meziantou.GitLab
+@using System.Text.RegularExpressions
+@using System.Globalization
+@using System.Diagnostics
+@using System.Text.Json
+@implements IDisposable
+@inject IJSRuntime JSRuntime
+
+<h1>Retry GitLab jobs!</h1>
+
+<EditForm Model="form" OnValidSubmit="OnSubmit">
+    <div class="form-group">
+        <label>GitLab job url</label>
+        <InputText class="form-control" type="url" @bind-Value="form.JobUrl" disabled="@isProcessing" />
+    </div>
+
+    <div class="form-group">
+        <label>GitLab access token (<a href="@GetGenerateTokenUrl()" target="_blank">generate</a>)</label>
+        <InputText class="form-control" type="password" @bind-Value="form.GitLabToken" disabled="@isProcessing" />
+    </div>
+
+    <div class="form-group">
+        <label>Number of parallel jobs (may not be supported by your GitLab instance)</label>
+        <InputNumber class="form-control" @bind-Value="form.ParallelJobs" min="1" max="20" />
+    </div>
+
+    @if (!isProcessing)
+    {
+        <button type="submit" class="btn btn-primary">Start</button>
+    }
+    else
+    {
+        <button type="submit" class="btn btn-secondary">Stop</button>
+    }
+</EditForm>
+
+@if (jobs.Count > 0)
+{
+    <div>Total jobs: @jobs.Count<br />Failed jobs: @jobs.Where(job => job.Status == JobStatus.Failed).Count()</div>
+
+    <ul>
+        @foreach (var job in jobs.Where(job => job.Status is JobStatus.Created or JobStatus.Pending or JobStatus.Running).OrderByDescending(job => job.CreatedAt))
+        {
+            <li>@RenderJob(job)</li>
+        }
+
+        @foreach (var job in jobs.Where(job => job.Status is JobStatus.Failed).OrderByDescending(job => job.CreatedAt))
+        {
+            <li>@RenderJob(job)</li>
+        }
+
+        @foreach (var job in jobs.Where(job => job.Status is not JobStatus.Created and not JobStatus.Pending and not JobStatus.Running and not JobStatus.Failed).OrderByDescending(job => job.CreatedAt))
+        {
+            <li>@RenderJob(job)</li>
+        }
+    </ul>
+}
+
+@code {
+    RetryGitLabJobForm form = new();
+    bool isProcessing;
+    CancellationTokenSource? cts;
+    string? errorMessage;
+
+    List<Job> jobs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var lastRun = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "lastRun");
+        if (lastRun != null)
+        {
+            form = JsonSerializer.Deserialize<RetryGitLabJobForm>(lastRun) ?? new();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (cts != null)
+        {
+            cts.Cancel();
+            cts.Dispose();
+        }
+    }
+
+    public async Task OnSubmit()
+    {
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "lastRun", JsonSerializer.Serialize(form));
+
+        if (isProcessing)
+        {
+            cts?.Cancel();
+            cts?.Dispose();
+            isProcessing = false;
+        }
+        else
+        {
+            if (!Uri.TryCreate(form.JobUrl, UriKind.Absolute, out var uri))
+            {
+                errorMessage = "Invalid job url";
+                return;
+            }
+
+            var match = Regex.Match(uri.AbsolutePath, "^/(?<project>.*)/-/jobs/(?<job>[0-9]+)$", RegexOptions.None);
+            if (!match.Success)
+            {
+                errorMessage = "Invalid job url";
+                return;
+            }
+
+            var projectUrl = new PathWithNamespace(match.Groups["project"].Value);
+            var jobId = match.Groups["job"].Value;
+            try
+            {
+                using var client = GitLabClient.Create(new Uri(uri.Scheme + "://" + uri.Authority), form.GitLabToken ?? "");
+                var project = await client.Projects.GetByIdAsync(projectUrl);
+                if (project == null)
+                {
+                    errorMessage = $"Cannot find the project '{projectUrl}'";
+                    return;
+                }
+
+                var job = await client.Jobs.GetJobAsync(project.Id, int.Parse(jobId, CultureInfo.InvariantCulture));
+                if (job == null)
+                {
+                    errorMessage = $"Cannot find the job '{jobId}'";
+                    return;
+                }
+
+                cts = new();
+                var jobs = this.jobs = new List<Job>();
+                jobs.Add(job);
+
+                isProcessing = true;
+                StateHasChanged();
+
+                await StartRetries(client, project, job, jobs, cts.Token);
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.ToString();
+                return;
+            }
+        }
+    }
+
+    private string GetGenerateTokenUrl()
+    {
+        if (!Uri.TryCreate(form.JobUrl, UriKind.Absolute, out var uri))
+            return "https://gitlab.com/-/profile/personal_access_tokens";
+
+        return uri.Scheme + "://" + uri.Authority + "/-/profile/personal_access_tokens";
+    }
+
+    private async Task StartRetries(IGitLabClient client, Project project, Job job, List<Job> jobs, CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            var currentJob = job;
+            while (!IsCompleted(currentJob))
+            {
+                var jobId = currentJob.Id;
+                currentJob = await client.Jobs.GetJobAsync(project.Id, jobId);
+                if (currentJob == null)
+                {
+                    errorMessage = $"Cannot find the job '{jobId}'";
+                    return;
+                }
+                await Task.Delay(5000);
+            }
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                // Refresh in-progress jobs
+                var inProgressJobs = 0;
+                for (var i = 0; i < jobs.Count; i++)
+                {
+                    if (!IsCompleted(jobs[i]))
+                    {
+                        jobs[i] = (await client.Jobs.GetJobAsync(project.Id, jobs[i].Id, cancellationToken: cancellationToken))!;
+                        if (!IsCompleted(jobs[i]))
+                        {
+                            inProgressJobs++;
+                        }
+                    }
+                }
+
+                // Start new jobs
+                for (var i = inProgressJobs; i < form.ParallelJobs; i++)
+                {
+                    try
+                    {
+                        // Depending on the server you cannot retry the same job indefinitely
+                        var jobToRetry = jobs.Where(job => IsCompleted(job)).OrderByDescending(j => j.Id).First();
+                        jobs.Add(await client.Jobs.RetryJobAsync(project.Id, jobToRetry, cancellationToken: cancellationToken));
+                    }
+                    catch (Exception ex)
+                    {
+                        errorMessage = ex.ToString();
+                    }
+                }
+
+                _ = InvokeAsync(() => StateHasChanged());
+                await Task.Delay(10000, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
+        {
+            Console.WriteLine("Canceled");
+        }
+    }
+
+    private static bool IsCompleted(Job job) => job.Status is JobStatus.Canceled or JobStatus.Failed or JobStatus.Success;
+
+    private RenderFragment<Job> RenderJob
+    {
+        get
+        {
+            return job =>
+                @<a href="@job.WebUrl" target="_blank">
+                    <span class="@GetClassName(job)">
+                        <svg><use href="/gitlab-icons.svg#@GetIconName(job)"></use></svg>
+                    </span>
+                    <span>@job.Id - @job.Name</span>
+                </a>
+                ;
+            static string GetClassName(Job job)
+            {
+                return "ci-status-icon ci-status-icon-" + job.Status.ToString().ToLowerInvariant();
+            }
+
+            static string GetIconName(Job job)
+            {
+                return job.Status switch
+                {
+                    JobStatus.Canceled => "status_canceled",
+                    JobStatus.Created => "status_created",
+                    JobStatus.Failed => "status_failed",
+                    JobStatus.Manual => "status_manual",
+                    JobStatus.Pending => "status_pending",
+                    JobStatus.Running => "status_running",
+                    JobStatus.Skipped => "status_skipped",
+                    JobStatus.Success => "status_success",
+                    _ => "",
+                };
+            }
+        }
+    }
+
+    class RetryGitLabJobForm
+    {
+        public string? GitLabToken { get; set; }
+        public string? JobUrl { get; set; }
+        public int ParallelJobs { get; set; } = 1;
+    }
+}
