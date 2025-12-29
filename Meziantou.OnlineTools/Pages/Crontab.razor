@@ -25,7 +25,7 @@
     {
         try
         {
-            var schedule = NCrontab.CrontabSchedule.Parse(text);
+            var schedule = NCrontab.CrontabSchedule.Parse(text ?? "");
 #pragma warning disable RS0030 // Do not use banned APIs
             result = string.Join('\n', schedule.GetNextOccurrences(DateTime.Now, DateTime.MaxValue).Take(50));
 #pragma warning restore RS0030
