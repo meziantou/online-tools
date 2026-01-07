@@ -1,6 +1,6 @@
 # How to contribute
 
-Please read these guidelines before contributing to meziantou/online-tools:
+Please read these guidelines before contributing to meziantou/Meziantou.OnlineTools:
 
  - [Question or Problem?](#got-a-question-or-problem)
  - [Issues and Bugs](#found-an-issue)
@@ -11,7 +11,7 @@ Please read these guidelines before contributing to meziantou/online-tools:
 
 ## Got a Question or Problem?
 
-If you have questions about how to use meziantou/online-tools, please open a GitHub issue.
+If you have questions about how to use meziantou/Meziantou.OnlineTools, please open a GitHub issue.
 
 ## Found an Issue?
 
@@ -36,15 +36,15 @@ You can request a new feature by submitting an issue to the GitHub Repository.
 
 When submitting a pull request to the GitHub Repository make sure to do the following:
 
-- Check that new and updated code follows meziantou/online-tools's existing code formatting and naming standard
-- Run meziantou/online-tools's unit tests to ensure no existing functionality has been affected
+- Check that new and updated code follows meziantou/Meziantou.OnlineTools's existing code formatting and naming standard
+- Run meziantou/Meziantou.OnlineTools's unit tests to ensure no existing functionality has been affected
 - Write new unit tests to test your changes. All features and fixed bugs must have tests to verify they work
 
 Read GitHub Help for more details about creating pull requests.
 
 ## Contributor License Agreement
 
-By contributing your code to meziantou/online-tools you grant Gérald Barré a non-exclusive, irrevocable, worldwide,
+By contributing your code to meziantou/Meziantou.OnlineTools you grant Gérald Barré a non-exclusive, irrevocable, worldwide,
 royalty-free, sublicenseable, transferable license under all of Your relevant intellectual property rights
 (including copyright, patent, and any other rights), to use, copy, prepare derivative works of, distribute and
 publicly perform and display the Contributions on any licensing terms, including without limitation:
