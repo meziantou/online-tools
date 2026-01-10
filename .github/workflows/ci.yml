@@ -1,7 +1,6 @@
 name: 'Publish application'
 # This workflow builds and deploys the application to Azure Static Web Apps.
-# For pull requests, it also manages preview environments by automatically deleting
-# the oldest preview environment if there are already 3 or more.
+# Uses a composite action that automatically manages preview environments.
 #
 # Required secrets:
 # - AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_GROUND_0F9AEF10F: Azure Static Web Apps deployment token
@@ -43,54 +42,9 @@ jobs:
           dotnet tool install --global Meziantou.Framework.Html.Tool
           meziantou.html append-version --file-pattern "Meziantou.OnlineTools/bin/Release/net10.0/publish/wwwroot/**/*.html"
 
-      # Preview environment management: Login to Azure to manage preview environments
-      # This step will fail gracefully if AZURE_CREDENTIALS is not configured
-      - name: Check and Cleanup Preview Environments
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      # Delete the oldest preview environment if there are already 3 or more
-      # This prevents hitting the Azure Static Web Apps preview environment limit
-      - name: Delete Oldest Preview Environment if Limit Reached
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        run: |
-          # List all environments
-          environments=$(az staticwebapp environment list \
-            --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --output json)
-
-          # Filter out the default/production environment and count preview environments
-          preview_count=$(echo "$environments" | jq '[.[] | select(.name != "default")] | length')
-
-          echo "Current preview environment count: $preview_count"
-
-          # If we have 3 or more preview environments, delete the oldest one
-          if [ "$preview_count" -ge 3 ]; then
-            echo "Preview environment limit reached. Deleting oldest environment..."
-
-            # Get the oldest preview environment (sort by creation date)
-            oldest_env=$(echo "$environments" | jq -r '[.[] | select(.name != "default")] | sort_by(.properties.createdTimeUtc // .properties.buildProperties.buildId // .name) | .[0].name')
-
-            echo "Deleting environment: $oldest_env"
-            az staticwebapp environment delete \
-              --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
-              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --environment-name "$oldest_env" \
-              --yes
-
-            echo "Deleted oldest preview environment: $oldest_env"
-          else
-            echo "Preview environment count is within limit. No cleanup needed."
-          fi
-
-      - name: Build And Deploy
+      - name: Deploy to Azure Static Web Apps
         id: builddeploy
-        uses: Azure/static-web-apps-deploy@v1
+        uses: ./.github/actions/deploy-static-web-app
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_GROUND_0F9AEF10F }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -98,16 +52,24 @@ jobs:
           app_location: "Meziantou.OnlineTools/bin/Release/net10.0/publish/wwwroot"
           api_location: ""
           output_location: ""
-          skip_app_build: true
+          skip_app_build: "true"
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          azure_static_web_app_name: ${{ secrets.AZURE_STATIC_WEB_APP_NAME }}
+          azure_resource_group: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          max_environments: "3"
+          cleanup_environments: "true"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     name: Close Pull Request Job
     steps:
+      - uses: actions/checkout@v6
+
       - name: Close Pull Request
         id: closepullrequest
-        uses: Azure/static-web-apps-deploy@v1
+        uses: ./.github/actions/deploy-static-web-app
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_GROUND_0F9AEF10F }}
           action: "close"
+          cleanup_environments: "false"

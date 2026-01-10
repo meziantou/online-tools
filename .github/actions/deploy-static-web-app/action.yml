@@ -1,0 +1,144 @@
+name: 'Deploy to Azure Static Web Apps with Environment Management'
+description: 'Deploys to Azure Static Web Apps with automatic preview environment cleanup'
+author: 'Meziantou'
+
+inputs:
+  # Azure Static Web Apps Deploy inputs
+  azure_static_web_apps_api_token:
+    description: 'Azure Static Web Apps API token'
+    required: true
+  repo_token:
+    description: 'GitHub token for commenting on PRs'
+    required: false
+  action:
+    description: 'Action to perform: upload or close'
+    required: false
+    default: 'upload'
+  app_location:
+    description: 'Directory location of the application source code'
+    required: false
+    default: '/'
+  api_location:
+    description: 'Directory location of the API source code'
+    required: false
+    default: ''
+  output_location:
+    description: 'Directory location of the build output relative to app_location'
+    required: false
+    default: ''
+  skip_app_build:
+    description: 'Skip building the app'
+    required: false
+    default: 'false'
+  skip_api_build:
+    description: 'Skip building the API'
+    required: false
+    default: 'false'
+  routes_location:
+    description: 'Directory location of the routes configuration file'
+    required: false
+    default: ''
+  config_file_location:
+    description: 'Directory location of the staticwebapp.config.json file'
+    required: false
+    default: ''
+  deployment_environment:
+    description: 'Environment name for the deployment'
+    required: false
+    default: ''
+  production_branch:
+    description: 'Production branch name'
+    required: false
+    default: ''
+  
+  # Environment management inputs
+  azure_credentials:
+    description: 'Azure service principal credentials for environment management (optional)'
+    required: false
+    default: ''
+  azure_static_web_app_name:
+    description: 'Name of the Azure Static Web App resource (required for environment management)'
+    required: false
+    default: ''
+  azure_resource_group:
+    description: 'Azure resource group name (required for environment management)'
+    required: false
+    default: ''
+  max_environments:
+    description: 'Maximum number of preview environments to maintain'
+    required: false
+    default: '3'
+  cleanup_environments:
+    description: 'Enable automatic cleanup of old environments when limit is reached'
+    required: false
+    default: 'true'
+
+outputs:
+  static_web_app_url:
+    description: 'URL of the deployed static web app'
+    value: ${{ steps.deploy.outputs.static_web_app_url }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Login to Azure
+      if: inputs.cleanup_environments == 'true' && inputs.azure_credentials != '' && github.event_name == 'pull_request'
+      uses: azure/login@v2
+      shell: bash
+      continue-on-error: true
+      with:
+        creds: ${{ inputs.azure_credentials }}
+
+    - name: Check and Cleanup Preview Environments
+      if: inputs.cleanup_environments == 'true' && inputs.azure_credentials != '' && inputs.azure_static_web_app_name != '' && inputs.azure_resource_group != '' && github.event_name == 'pull_request'
+      shell: bash
+      continue-on-error: true
+      run: |
+        # List all environments
+        environments=$(az staticwebapp environment list \
+          --name ${{ inputs.azure_static_web_app_name }} \
+          --resource-group ${{ inputs.azure_resource_group }} \
+          --output json)
+
+        # Filter out the default/production environment and count preview environments
+        preview_count=$(echo "$environments" | jq '[.[] | select(.name != "default")] | length')
+
+        echo "Current preview environment count: $preview_count"
+        echo "Maximum allowed environments: ${{ inputs.max_environments }}"
+
+        # Calculate if we need to delete environments
+        max_envs=${{ inputs.max_environments }}
+        if [ "$preview_count" -ge "$max_envs" ]; then
+          echo "Preview environment limit reached. Deleting oldest environment..."
+
+          # Get the oldest preview environment (sort by creation date)
+          oldest_env=$(echo "$environments" | jq -r '[.[] | select(.name != "default")] | sort_by(.properties.createdTimeUtc // .properties.buildProperties.buildId // .name) | .[0].name')
+
+          echo "Deleting environment: $oldest_env"
+          az staticwebapp environment delete \
+            --name ${{ inputs.azure_static_web_app_name }} \
+            --resource-group ${{ inputs.azure_resource_group }} \
+            --environment-name "$oldest_env" \
+            --yes
+
+          echo "Deleted oldest preview environment: $oldest_env"
+        else
+          echo "Preview environment count is within limit. No cleanup needed."
+        fi
+
+    - name: Deploy to Azure Static Web Apps
+      id: deploy
+      uses: Azure/static-web-apps-deploy@v1
+      with:
+        azure_static_web_apps_api_token: ${{ inputs.azure_static_web_apps_api_token }}
+        repo_token: ${{ inputs.repo_token }}
+        action: ${{ inputs.action }}
+        app_location: ${{ inputs.app_location }}
+        api_location: ${{ inputs.api_location }}
+        output_location: ${{ inputs.output_location }}
+        skip_app_build: ${{ inputs.skip_app_build }}
+        skip_api_build: ${{ inputs.skip_api_build }}
+        routes_location: ${{ inputs.routes_location }}
+        config_file_location: ${{ inputs.config_file_location }}
+        deployment_environment: ${{ inputs.deployment_environment }}
+        production_branch: ${{ inputs.production_branch }}
