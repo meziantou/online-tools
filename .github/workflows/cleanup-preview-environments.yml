@@ -1,0 +1,46 @@
+name: 'Cleanup Preview Environments'
+on:
+  workflow_dispatch:
+  schedule:
+    # Run weekly on Sundays at 2:00 AM UTC
+    - cron: "0 2 * * 0"
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Delete All Preview Environments
+        run: |
+          # List all environments
+          environments=$(az staticwebapp environment list \
+            --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --output json)
+          
+          # Filter out the default/production environment and get preview environment names
+          preview_envs=$(echo "$environments" | jq -r '.[] | select(.name != "default") | .name')
+          
+          if [ -z "$preview_envs" ]; then
+            echo "No preview environments to delete"
+            exit 0
+          fi
+          
+          echo "Found preview environments:"
+          echo "$preview_envs"
+          
+          # Delete each preview environment
+          for env in $preview_envs; do
+            echo "Deleting environment: $env"
+            az staticwebapp environment delete \
+              --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --environment-name "$env" \
+              --yes
+          done
+          
+          echo "All preview environments have been deleted"
