@@ -36,38 +36,40 @@ jobs:
 
       - name: Check and Cleanup Preview Environments
         if: github.event_name == 'pull_request'
+        continue-on-error: true
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Delete Oldest Preview Environment if Limit Reached
         if: github.event_name == 'pull_request'
+        continue-on-error: true
         run: |
           # List all environments
           environments=$(az staticwebapp environment list \
             --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --output json)
-          
+
           # Filter out the default/production environment and count preview environments
           preview_count=$(echo "$environments" | jq '[.[] | select(.name != "default")] | length')
-          
+
           echo "Current preview environment count: $preview_count"
-          
+
           # If we have 3 or more preview environments, delete the oldest one
           if [ "$preview_count" -ge 3 ]; then
             echo "Preview environment limit reached. Deleting oldest environment..."
-            
+
             # Get the oldest preview environment (sort by creation date)
             oldest_env=$(echo "$environments" | jq -r '[.[] | select(.name != "default")] | sort_by(.properties.createdTimeUtc // .properties.buildProperties.buildId // .name) | .[0].name')
-            
+
             echo "Deleting environment: $oldest_env"
             az staticwebapp environment delete \
               --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
               --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
               --environment-name "$oldest_env" \
               --yes
-            
+
             echo "Deleted oldest preview environment: $oldest_env"
           else
             echo "Preview environment count is within limit. No cleanup needed."

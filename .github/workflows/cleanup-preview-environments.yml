@@ -21,18 +21,18 @@ jobs:
             --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --output json)
-          
+
           # Filter out the default/production environment and get preview environment names
           preview_envs=$(echo "$environments" | jq -r '.[] | select(.name != "default") | .name')
-          
+
           if [ -z "$preview_envs" ]; then
             echo "No preview environments to delete"
             exit 0
           fi
-          
+
           echo "Found preview environments:"
           echo "$preview_envs"
-          
+
           # Delete each preview environment
           for env in $preview_envs; do
             echo "Deleting environment: $env"
@@ -42,5 +42,5 @@ jobs:
               --environment-name "$env" \
               --yes
           done
-          
+
           echo "All preview environments have been deleted"
