@@ -50,7 +50,7 @@ inputs:
     description: 'Production branch name'
     required: false
     default: ''
-  
+
   # Environment management inputs
   azure_credentials:
     description: 'Azure service principal credentials for environment management (optional)'
