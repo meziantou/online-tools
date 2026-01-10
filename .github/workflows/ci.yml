@@ -1,4 +1,13 @@
 name: 'Publish application'
+# This workflow builds and deploys the application to Azure Static Web Apps.
+# For pull requests, it also manages preview environments by automatically deleting
+# the oldest preview environment if there are already 3 or more.
+#
+# Required secrets:
+# - AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_GROUND_0F9AEF10F: Azure Static Web Apps deployment token
+# - AZURE_CREDENTIALS: Azure service principal credentials (optional, for preview environment management)
+# - AZURE_STATIC_WEB_APP_NAME: Name of the Azure Static Web App (optional, for preview environment management)
+# - AZURE_RESOURCE_GROUP: Azure resource group name (optional, for preview environment management)
 on:
   push:
     branches:
@@ -34,6 +43,8 @@ jobs:
           dotnet tool install --global Meziantou.Framework.Html.Tool
           meziantou.html append-version --file-pattern "Meziantou.OnlineTools/bin/Release/net10.0/publish/wwwroot/**/*.html"
 
+      # Preview environment management: Login to Azure to manage preview environments
+      # This step will fail gracefully if AZURE_CREDENTIALS is not configured
       - name: Check and Cleanup Preview Environments
         if: github.event_name == 'pull_request'
         continue-on-error: true
@@ -41,6 +52,8 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # Delete the oldest preview environment if there are already 3 or more
+      # This prevents hitting the Azure Static Web Apps preview environment limit
       - name: Delete Oldest Preview Environment if Limit Reached
         if: github.event_name == 'pull_request'
         continue-on-error: true

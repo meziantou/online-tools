@@ -1,4 +1,11 @@
 name: 'Cleanup Preview Environments'
+# This workflow deletes all Azure Static Web App preview environments.
+# It can be triggered manually via workflow_dispatch or runs automatically weekly.
+#
+# Required secrets:
+# - AZURE_CREDENTIALS: Azure service principal credentials in JSON format
+# - AZURE_STATIC_WEB_APP_NAME: Name of the Azure Static Web App resource
+# - AZURE_RESOURCE_GROUP: Name of the Azure resource group containing the Static Web App
 on:
   workflow_dispatch:
   schedule:
